@@ -187,7 +187,7 @@ function renderTrace() {
     const b = el('button', 'step-head');
     b.type = 'button';
     b.append(el('span', 'mark', { ok: '✓', refused: '✕', warn: '!', info: '·' }[st.verdict]), el('span', 'step-title', st.title));
-    b.addEventListener('click', () => play(s.id, i, false));
+    li.addEventListener('click', ev => { if (!ev.target.closest('.chip')) play(s.id, i, false); });
     li.append(b, el('p', 'step-detail', st.detail));
     if (st.keys.length) {
       const chips = el('div', 'chips');
@@ -277,6 +277,9 @@ function pickLine(line) {
   stage.mark([], 'picked');
   renderInspector();
   tab('side', true);
+  // A step's line is also a way back to that step.
+  const i = line.kind === 'step' ? current()?.steps.indexOf(line.step) : -1;
+  if (i >= 0 && i !== state.step) play(state.scenario, i, false);
 }
 
 const VERDICT = { ok: 'Allowed', refused: 'Refused', warn: 'Allowed, and worth worrying about', info: 'What happens here' };

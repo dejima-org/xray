@@ -174,6 +174,8 @@ h2, h3, h4 { font-weight: 500; margin: 0; }
 .empty { color: var(--fg-dim); font-family: var(--font-body); font-size: .9rem; margin: 0; }
 
 .steps { list-style: none; margin: 0; padding: 0; counter-reset: s; }
+.step { cursor: pointer; }
+.step:not(.now):hover { background: color-mix(in srgb, var(--bg-raise) 60%, transparent); }
 .step { position: relative; padding: .45rem .5rem .55rem 2rem; border-radius: 8px; counter-increment: s; opacity: .55; transition: opacity .2s, background .2s; }
 .step.done { opacity: .8; }
 .step.now { opacity: 1; background: var(--bg-raise); }
