@@ -377,6 +377,11 @@ h2, h3, h4 { font-weight: 500; margin: 0; }
   .legend { display: none; }
 }
 
+@media (max-width: 600px) {
+  .bar-title { display: none; }
+  .wordmark { margin-right: auto; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition: none !important; animation: none !important; }
 }
