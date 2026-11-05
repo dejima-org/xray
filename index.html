@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>dejima, drawn</title>
+<meta name="description" content="An interactive diagram of what dejima and its sister projects do, driven by their real settings.">
+<link rel="icon" href="assets/brand/favicon.png">
+<link rel="preload" href="assets/fonts/jost-latin-500-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="styles.css">
+<script type="module" src="src/main.js"></script>
+</head>
+<body>
+<header class="bar">
+  <img class="wordmark" src="assets/brand/dejima-wordmark-darkmode.png" alt="dejima" width="2007" height="492">
+  <p class="bar-title">What runs where, and what stops what</p>
+  <button type="button" id="reset" class="quiet">Reset</button>
+</header>
+
+<main class="app">
+  <aside class="rail panel" aria-label="Settings">
+    <div class="panel-body" id="rail-body"></div>
+  </aside>
+
+  <section class="stage" aria-label="Diagram">
+    <div class="stage-wrap" id="stage-wrap">
+      <div id="sizer"><div class="world" id="world"></div></div>
+    </div>
+    <div class="zoom" role="group" aria-label="Zoom">
+      <button type="button" id="zoom-out" aria-label="Zoom out">−</button>
+      <button type="button" id="zoom-fit" aria-label="Fit to width"><span id="zoom-level">100%</span></button>
+      <button type="button" id="zoom-in" aria-label="Zoom in">+</button>
+    </div>
+    <dl class="legend">
+      <div><dt class="sw sw-ok"></dt><dd>allowed</dd></div>
+      <div><dt class="sw sw-refused"></dt><dd>refused</dd></div>
+      <div><dt class="sw sw-warn"></dt><dd>allowed, and it shouldn't be</dd></div>
+      <div><dt class="sw sw-wall"></dt><dd>a wall the guest can't move</dd></div>
+    </dl>
+  </section>
+
+  <aside class="side panel" aria-label="Scenarios and details">
+    <div class="panel-body">
+      <section class="play">
+        <h2>Make something happen</h2>
+        <div id="scenarios"></div>
+      </section>
+      <section class="trace-box" aria-live="polite">
+        <div class="trace-head">
+          <h2 id="trace-title">Pick something to happen</h2>
+          <div id="controls" class="controls" hidden>
+            <button type="button" id="prev" aria-label="Previous step">‹</button>
+            <button type="button" id="play">Pause</button>
+            <button type="button" id="next" aria-label="Next step">›</button>
+            <button type="button" id="speed" aria-label="Speed">1×</button>
+          </div>
+        </div>
+        <div id="trace"></div>
+      </section>
+      <section class="inspect">
+        <h2>Selected</h2>
+        <div id="inspector"></div>
+      </section>
+    </div>
+  </aside>
+
+  <nav class="tabs" aria-label="Panels" role="tablist">
+    <button type="button" role="tab" data-tab-for="rail">Settings</button>
+    <button type="button" role="tab" data-tab-for="side">Scenarios</button>
+  </nav>
+</main>
+</body>
+</html>

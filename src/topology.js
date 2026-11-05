@@ -104,7 +104,7 @@ export function derive(cfg) {
     info: info('Where the agent runs. It has no network namespace of its own and no network capability, so it cannot change the rules, even as root.',
       ['harness', 'isolated'], ['No sudo, no Docker socket, no ptrace, no IPv6.', 'Same uid, gid, and home path as you.']) });
 
-  const netns = box('netns', 'netns', 'one network namespace', [filter, session], {
+  const netns = box('netns', 'netns', 'one network namespace', [session, filter], {
     info: info('network_mode: container:dejima-filter-…: both containers share one network stack and one loopback.', ['firewall']) });
 
   const dnSession = on.darner && box('c-dn', 'container', 'darner session', [
@@ -257,8 +257,10 @@ export function derive(cfg) {
 
   const lan = box('lan', 'zone', 'your LAN', [
     lanSvcs,
-    box('machines', 'group', '', [laptop, pve]),
-    box('clients', 'group', '', [phone, guardHost, darnerHost, maubot]),
+    box('lan-main', 'group', '', [
+      box('machines', 'group', '', [laptop, pve]),
+      box('clients', 'group', '', [phone, guardHost, darnerHost, maubot]),
+    ]),
   ], { sub: '10.0.0.0/24 (example)', info: info('Private address space: what both hardeners fence the devbox and the runners out of.', []) });
 
   const internet = box('internet', 'zone', 'the internet', [
