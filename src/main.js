@@ -1,7 +1,7 @@
 import { PROJECTS, KEYS, keyById, keyName, keyOpts, keyShown, defaults, normalise } from './config.js';
 import { derive } from './topology.js';
 import { scenarios } from './scenarios.js';
-import { Stage } from './render.js';
+import { Stage, selecting } from './render.js';
 
 const $ = s => document.querySelector(s);
 const el = (tag, cls, text) => { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; };
@@ -185,10 +185,12 @@ function renderTrace() {
     const li = el('li', `step v-${st.verdict}`);
     if (i === state.step) li.classList.add('now');
     if (i < state.step) li.classList.add('done');
-    const b = el('button', 'step-head');
-    b.type = 'button';
+    const b = el('div', 'step-head');
     b.append(el('span', 'mark', { ok: '✓', refused: '✕', warn: '!', info: '·' }[st.verdict]), el('span', 'step-title', st.title));
-    li.addEventListener('click', ev => { if (!ev.target.closest('.chip')) play(s.id, i, false); });
+    li.tabIndex = 0;
+    li.setAttribute('role', 'button');
+    li.addEventListener('click', ev => { if (!ev.target.closest('.chip') && !selecting()) play(s.id, i, false); });
+    li.addEventListener('keydown', ev => { if (ev.target === li && ev.key === 'Enter') play(s.id, i, false); });
     li.append(b, el('p', 'step-detail', st.detail));
     if (st.keys.length) {
       const chips = el('div', 'chips');
@@ -262,7 +264,7 @@ document.addEventListener('keydown', ev => {
   if (!current() || ev.altKey || ev.ctrlKey || ev.metaKey) return;
   if (ev.key === 'ArrowRight') { ev.preventDefault(); stepTo(state.step + 1); }
   else if (ev.key === 'ArrowLeft') { ev.preventDefault(); stepTo(state.step - 1); }
-  else if (ev.key === ' ' && !ev.target.closest('button')) { ev.preventDefault(); togglePlay(); }
+  else if (ev.key === ' ' && !ev.target.closest('button, [role=button]')) { ev.preventDefault(); togglePlay(); }
 });
 
 // ---- inspector --------------------------------------------------------------
@@ -288,6 +290,7 @@ const LINK = { rw: 'Mounted, writable', ro: 'Mounted, read-only', socket: 'A uni
 
 function renderInspector() {
   const box = $('#inspector');
+  if (state.picked) $('.side .panel-body').scrollTop = 0;
   box.replaceChildren();
   const ln = state.picked?.line;
   if (ln) {
@@ -359,7 +362,8 @@ new ResizeObserver(() => { if (state.fit) fit(); else setScale(stage.scale); }).
 
 let drag = null;
 wrap.addEventListener('pointerdown', ev => {
-  if (ev.pointerType !== 'mouse' || ev.button !== 0 || ev.target.closest('button')) return;
+  // Only the background pans; dragging across a label selects its text.
+  if (ev.pointerType !== 'mouse' || ev.button !== 0 || ev.target.closest('button, .n, .caption')) return;
   drag = { x: ev.clientX, y: ev.clientY, l: wrap.scrollLeft, t: wrap.scrollTop };
   wrap.setPointerCapture(ev.pointerId);
   wrap.classList.add('dragging');

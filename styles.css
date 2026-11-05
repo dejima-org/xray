@@ -185,7 +185,7 @@ h2, h3, h4 { font-weight: 500; margin: 0; }
 .step { position: relative; padding: .45rem .5rem .55rem 2rem; border-radius: 8px; counter-increment: s; opacity: .55; transition: opacity .2s, background .2s; }
 .step.done { opacity: .8; }
 .step.now { opacity: 1; background: var(--bg-raise); }
-.step-head { display: flex; gap: .5rem; width: 100%; font-weight: 500; }
+.step-head { cursor: pointer; display: flex; gap: .5rem; width: 100%; font-weight: 500; }
 .step-head::before { content: counter(s); position: absolute; left: .55rem; top: .5rem; color: var(--fg-faint); font-size: .8rem; }
 .mark { width: 1.1rem; flex: none; text-align: center; font-weight: 500; }
 .v-ok .mark { color: var(--ok); }
@@ -200,7 +200,7 @@ h2, h3, h4 { font-weight: 500; margin: 0; }
 .chip code { color: var(--key); }
 .chip:hover { border-color: var(--key); }
 
-.inspect { border-top: 1px solid var(--rule); padding-top: 1rem; }
+.inspect { border-bottom: 1px solid var(--rule); padding-bottom: 1rem; margin-bottom: 1rem; }
 .inspect h3 { font-size: 1.1rem; }
 .inspect h4 { font-size: .8rem; color: var(--fg-faint); margin: .9rem 0 .35rem; }
 .ins-sub.v-ok { color: var(--ok); } .ins-sub.v-refused { color: var(--refused); } .ins-sub.v-warn { color: var(--warn); } .ins-sub.v-info { color: var(--info); }
@@ -243,6 +243,7 @@ h2, h3, h4 { font-weight: 500; margin: 0; }
 
 /* --- nodes ------------------------------------------------------------ */
 
+.leaf, .n-head { cursor: pointer; user-select: text; }
 .n { position: relative; transition: opacity .35s, filter .35s; }
 .box { display: flex; flex-direction: column; min-width: 0; }
 .n-head { display: flex; flex-direction: column; align-items: flex-start; gap: 0; padding: 0 0 .35rem; }
@@ -307,7 +308,7 @@ h2, h3, h4 { font-weight: 500; margin: 0; }
 .k-gate .n-label { color: var(--ok); }
 .k-gate.t-warn { border-color: var(--warn); background: color-mix(in srgb, var(--warn) 10%, var(--bg-well)); }
 .k-gate.t-warn .n-label { color: var(--warn); }
-.on-wall { position: absolute; top: -14px; left: 50%; translate: -50% 0; z-index: 2; padding: 3px 9px 4px; }
+.on-wall { white-space: nowrap; position: absolute; top: -14px; left: 50%; translate: -50% 0; z-index: 2; padding: 3px 9px 4px; }
 .on-wall .n-sub { display: none; }
 .leaf.t-warn:not(.k-gate) { border-color: var(--warn); }
 .t-warn .n-sub { color: var(--warn); }

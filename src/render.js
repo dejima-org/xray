@@ -97,11 +97,10 @@ export class Stage {
     el.className = 'n box';
     el.dataset.id = node.id;
     el.dataset.box = '1';
-    const head = document.createElement('button');
+    const head = pressable('div');
     head.className = 'n-head';
-    head.type = 'button';
     head.append(span('n-label'), span('n-sub'));
-    head.addEventListener('click', ev => { ev.stopPropagation(); this.onPick(node.id); });
+    head.addEventListener('click', ev => { ev.stopPropagation(); if (!selecting()) this.onPick(node.id); });
     const kids = document.createElement('div');
     kids.className = 'n-kids';
     el.append(head, kids);
@@ -109,13 +108,12 @@ export class Stage {
   }
 
   makeLeaf(node) {
-    const el = document.createElement('button');
-    el.type = 'button';
+    const el = pressable('div');
     el.className = 'n leaf';
     el.dataset.id = node.id;
     el.dataset.box = '0';
     el.append(span('n-label'), span('n-sub'));
-    el.addEventListener('click', ev => { ev.stopPropagation(); this.onPick(node.id); });
+    el.addEventListener('click', ev => { ev.stopPropagation(); if (!selecting()) this.onPick(node.id); });
     return el;
   }
 
@@ -321,6 +319,20 @@ export class Stage {
     return { x0: Math.min(...xs), y0: Math.min(...ys), x1: Math.max(...xs), y1: Math.max(...ys) };
   }
 }
+
+// Something that acts like a button but keeps its text selectable, which a
+// <button> does not: Enter and Space press it, and a click that ends a text
+// selection is not a press.
+function pressable(tag) {
+  const el = document.createElement(tag);
+  el.setAttribute('role', 'button');
+  el.tabIndex = 0;
+  el.addEventListener('keydown', ev => {
+    if (ev.target === el && (ev.key === 'Enter' || ev.key === ' ')) { ev.preventDefault(); el.click(); }
+  });
+  return el;
+}
+export const selecting = () => !!window.getSelection()?.toString();
 
 function span(c) { const s = document.createElement('span'); s.className = c; return s; }
 function wait(ms) { return new Promise(r => setTimeout(r, ms)); }
