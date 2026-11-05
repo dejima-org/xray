@@ -172,34 +172,52 @@ export class Stage {
     this.svg.animate?.([{ opacity: 0.2 }, { opacity: 1 }], { duration: 200 });
   }
 
-  clearTrails() { this.trails.replaceChildren(); }
+  clearTrails() { this.trails.replaceChildren(); this.caption?.remove(); this.caption = null; }
 
   // Move a packet through the centres of `ids`. Resolves when it arrives.
-  travel(ids, verdict, speed = 1) {
+  // `instant` draws the finished trail at once, dimmed, for steps already
+  // passed; `title` rides beside the packet as a caption.
+  travel(ids, verdict, speed = 1, { instant = false, title = '' } = {}) {
     const pts = ids.map(id => this.point(id)).filter(Boolean);
     if (!pts.length) return Promise.resolve();
     const cls = `v-${verdict}`;
     for (const t of this.trails.children) t.classList.add('old');
-    if (pts.length === 1) { this.burst(pts[0], verdict); return wait(500 / speed); }
+    const end = pts[pts.length - 1];
+    const cap = title && this.captionFor(title, verdict);
+    if (pts.length === 1) {
+      this.burst(end, verdict);
+      if (instant) this.trails.lastChild.classList.add('old');
+      cap?.place(end);
+      return instant ? Promise.resolve() : wait(500 / speed);
+    }
     const path = document.createElementNS(SVG, 'path');
     path.setAttribute('d', smooth(pts));
     path.setAttribute('class', `trail ${cls}`);
+    this.trails.append(path);
+    if (instant) {
+      path.classList.add('old');
+      this.burst(end, verdict);
+      this.trails.lastChild.classList.add('old');
+      return Promise.resolve();
+    }
     const dot = document.createElementNS(SVG, 'circle');
     dot.setAttribute('r', 6);
     dot.setAttribute('class', `packet ${cls}`);
-    this.trails.append(path, dot);
+    this.trails.append(dot);
     const len = path.getTotalLength();
     path.style.strokeDasharray = `${len}`;
     path.style.strokeDashoffset = `${len}`;
-    const dur = Math.min(2200, Math.max(600, len * 1.4)) / speed;
+    const dur = Math.min(2400, Math.max(700, len * 1.5)) / speed;
     if (reduced()) {
       path.style.strokeDashoffset = '0';
       dot.remove();
-      this.burst(pts[pts.length - 1], verdict);
+      this.burst(end, verdict);
+      cap?.place(end);
       return wait(250);
     }
     return new Promise(res => {
       const t0 = performance.now();
+      let frame = 0;
       const tick = now => {
         const t = Math.min(1, (now - t0) / dur);
         const e = t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2;
@@ -207,11 +225,48 @@ export class Stage {
         dot.setAttribute('cx', p.x);
         dot.setAttribute('cy', p.y);
         path.style.strokeDashoffset = `${len * (1 - e)}`;
+        cap?.place([p.x, p.y], frame++ % 8 === 0);
         if (t < 1) requestAnimationFrame(tick);
-        else { dot.remove(); this.burst(pts[pts.length - 1], verdict); res(); }
+        else { dot.remove(); this.burst(end, verdict); cap?.place(end, true); res(); }
       };
       requestAnimationFrame(tick);
     });
+  }
+
+  // A caption that follows a point, on whichever side of it covers the least
+  // of the picture. It only changes side when re-scored, so it does not jitter.
+  captionFor(title, verdict) {
+    this.caption?.remove();
+    const el = document.createElement('div');
+    el.className = `caption v-${verdict}`;
+    el.textContent = title;
+    el.setAttribute('aria-hidden', 'true');
+    this.world.append(el);
+    this.caption = el;
+    const w = el.offsetWidth, h = el.offsetHeight, gap = 16;
+    const wr = this.world.getBoundingClientRect();
+    const solid = [...this.world.querySelectorAll('.leaf, .n-head:not([hidden])')].map(n => {
+      const r = n.getBoundingClientRect();
+      return [(r.left - wr.left) / this.scale, (r.top - wr.top) / this.scale, (r.right - wr.left) / this.scale, (r.bottom - wr.top) / this.scale];
+    });
+    const sides = [[gap, -h - gap], [gap, gap], [-w - gap, -h - gap], [-w - gap, gap],
+      [-w / 2, -h - 3 * gap], [-w / 2, 3 * gap], [3 * gap, -h / 2], [-w - 3 * gap, -h / 2]];
+    const maxX = this.world.offsetWidth - w, maxY = this.world.offsetHeight - h;
+    const at = ([x, y], [dx, dy]) => [Math.max(0, Math.min(maxX, x + dx)), Math.max(0, Math.min(maxY, y + dy))];
+    const cost = ([x, y]) => solid.reduce((sum, [a, b, c, d]) =>
+      sum + Math.max(0, Math.min(c, x + w) - Math.max(a, x)) * Math.max(0, Math.min(d, y + h) - Math.max(b, y)), 0);
+    let side = 0;
+    return {
+      place: (p, rescore = false) => {
+        if (rescore) {
+          const scores = sides.map(o => cost(at(p, o)));
+          const best = scores.indexOf(Math.min(...scores));
+          if (scores[best] < scores[side] * 0.6) side = best;
+        }
+        const [x, y] = at(p, sides[side]);
+        el.style.transform = `translate(${x}px, ${y}px)`;
+      },
+    };
   }
 
   burst([x, y], verdict) {

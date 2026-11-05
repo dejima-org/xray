@@ -35,6 +35,7 @@ async function apply() {
   normalise(state.cfg);
   derived = derive(state.cfg);
   list = scenarios(state.cfg, derived);
+  const wasPlaying = state.playing;
   stopRun();
   const settled = stage.update(derived.root, derived.edges);
   if (state.fit) fit();
@@ -43,7 +44,7 @@ async function apply() {
   renderInspector();
   save();
   await settled;
-  if (state.scenario && list.some(s => s.id === state.scenario)) play(state.scenario, Math.min(state.step, current().steps.length - 1), true);
+  if (state.scenario && list.some(s => s.id === state.scenario)) play(state.scenario, Math.min(state.step, current().steps.length - 1), wasPlaying);
   else { state.scenario = null; renderTrace(); }
 }
 
@@ -172,7 +173,7 @@ function renderTrace() {
   $('#controls').hidden = !s;
   box.replaceChildren();
   if (!s) {
-    box.append(el('p', 'empty', 'Each one sends a request through the picture as it is configured now, and shows where it stops. Change a setting while it plays and it runs again.'));
+    box.append(el('p', 'empty', 'Each one sends a request through the picture as it is configured now, and shows where it stops. Step through with ‹ › or the arrow keys; change a setting and it runs again.'));
     return;
   }
   const ol = el('ol', 'steps');
@@ -183,7 +184,7 @@ function renderTrace() {
     const b = el('button', 'step-head');
     b.type = 'button';
     b.append(el('span', 'mark', { ok: '✓', refused: '✕', warn: '!', info: '·' }[st.verdict]), el('span', 'step-title', st.title));
-    b.addEventListener('click', () => play(s.id, i));
+    b.addEventListener('click', () => play(s.id, i, false));
     li.append(b, el('p', 'step-detail', st.detail));
     if (st.keys.length) {
       const chips = el('div', 'chips');
@@ -194,21 +195,29 @@ function renderTrace() {
   });
   box.append(ol);
   box.querySelector('.now')?.scrollIntoView({ block: 'nearest' });
-  $('#play').textContent = state.playing ? 'Pause' : (state.step >= s.steps.length - 1 && !state.playing ? 'Replay' : 'Play');
+  $('#play').textContent = state.playing ? 'Pause' : state.step >= s.steps.length - 1 ? 'Replay' : 'Play';
+  $('#prev').disabled = state.step === 0;
+  $('#next').disabled = state.step >= s.steps.length - 1;
 }
 
 function stopRun() { state.run++; state.playing = false; }
 
-async function play(id, from = 0, resume = false) {
+// Plays from step `from`. With `auto` it carries on to the end; without, it
+// plays that one step and holds there, which is what stepping wants. Earlier
+// steps are drawn at once, dimmed, so a jump keeps its context.
+async function play(id, from = 0, auto = true) {
   stopRun();
   const run = state.run;
   state.scenario = id;
-  state.playing = true;
+  state.playing = auto;
   const s = current();
   stage.clearTrails();
   stage.mark([], 'gone'); stage.mark([], 'kept'); stage.mark([], 'lit');
   const gone = [], kept = [];
-  for (let i = 0; i < from; i++) { gone.push(...(s.steps[i].gone || [])); kept.push(...(s.steps[i].kept || [])); }
+  for (let i = 0; i < from; i++) {
+    stage.travel(s.steps[i].path, s.steps[i].verdict, 1, { instant: true });
+    gone.push(...(s.steps[i].gone || [])); kept.push(...(s.steps[i].kept || []));
+  }
   stage.mark(gone, 'gone'); stage.mark(kept, 'kept');
   renderScenarios();
   for (let i = from; i < s.steps.length; i++) {
@@ -218,30 +227,38 @@ async function play(id, from = 0, resume = false) {
     const st = s.steps[i];
     stage.mark(st.path, 'lit');
     focus(st.path);
-    await stage.travel(st.path, st.verdict, state.speed);
+    await stage.travel(st.path, st.verdict, state.speed, { title: st.title });
     if (run !== state.run) return;
     gone.push(...(st.gone || [])); kept.push(...(st.kept || []));
     stage.mark(gone, 'gone'); stage.mark(kept, 'kept');
-    await new Promise(r => setTimeout(r, (resume ? 300 : 900) / state.speed));
-    resume = false;
+    if (!auto) return;
+    await new Promise(r => setTimeout(r, 1100 / state.speed));
   }
   if (run !== state.run) return;
   state.playing = false;
-  stage.mark([], 'lit');
   renderTrace();
 }
 
-$('#play').addEventListener('click', () => {
+const stepTo = i => { const s = current(); if (s) play(s.id, Math.max(0, Math.min(s.steps.length - 1, i)), false); };
+function togglePlay() {
   const s = current();
   if (!s) return;
   if (state.playing) { stopRun(); renderTrace(); }
-  else play(s.id, state.step >= s.steps.length - 1 ? 0 : state.step + 1);
-});
-$('#prev').addEventListener('click', () => current() && play(state.scenario, Math.max(0, state.step - 1)));
-$('#next').addEventListener('click', () => current() && play(state.scenario, Math.min(current().steps.length - 1, state.step + 1)));
+  else play(s.id, state.step >= s.steps.length - 1 ? 0 : state.step + 1, true);
+}
+$('#play').addEventListener('click', togglePlay);
+$('#restart').addEventListener('click', () => stepTo(0));
+$('#prev').addEventListener('click', () => stepTo(state.step - 1));
+$('#next').addEventListener('click', () => stepTo(state.step + 1));
 $('#speed').addEventListener('click', ev => {
-  state.speed = state.speed === 1 ? 2 : state.speed === 2 ? 0.5 : 1;
+  state.speed = state.speed === 1 ? 0.5 : state.speed === 0.5 ? 2 : 1;
   ev.currentTarget.textContent = `${state.speed}×`;
+});
+document.addEventListener('keydown', ev => {
+  if (!current() || ev.altKey || ev.ctrlKey || ev.metaKey) return;
+  if (ev.key === 'ArrowRight') { ev.preventDefault(); stepTo(state.step + 1); }
+  else if (ev.key === 'ArrowLeft') { ev.preventDefault(); stepTo(state.step - 1); }
+  else if (ev.key === ' ' && !ev.target.closest('button')) { ev.preventDefault(); togglePlay(); }
 });
 
 // ---- inspector --------------------------------------------------------------
