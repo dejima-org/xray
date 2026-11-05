@@ -40,7 +40,7 @@ export function derive(cfg) {
     e.rwpp !== 'unset' && leaf('f-rwpp', 'file', `${e.rwpp}/projects/${SLUG}`, { sub: 'read_write_per_project',
       info: info(`Appears at ${e.rwpp} inside, but each project gets its own subdirectory.`, ['rwpp']) }),
     !e.selfHosted && leaf('f-cred', 'file', e.backend === 'anthropic' ? '~/.claude/.credentials.json'
-      : e.backend === 'anthropic-api-key' ? '~/.claude.json' : '~/.config/openrouter/key', {
+      : e.backend === 'anthropic-api-key' ? '~/.claude.json' : '[backend.openrouter] credential_file', {
       sub: 'the real credential', tone: e.proxy === 'off' ? 'bad' : 'ok',
       info: info(e.proxy === 'off'
         ? 'With the proxy off this file is mounted into the container: the agent holds the real credential.'
@@ -67,7 +67,7 @@ export function derive(cfg) {
       info: info('ulogd2 and dns-lookup-log record every lookup and every new connection attempt, allowed or refused.', ['loki']) }),
   ], { sub: `dejima-filter-${RUN.slice(0, 6)}…`,
     info: info('Owns the network namespace and holds the only network privileges. Nothing the session runs executes here.',
-      ['firewall'], ['cap_drop ALL, plus NET_ADMIN and NET_RAW.', 'Killing it leaves the session with loopback only.']) });
+      ['firewall'], ['cap_drop ALL; its only network capabilities are NET_ADMIN and NET_RAW.', 'Killing it leaves the session with loopback only.']) });
 
   const mounts = [
     leaf('m-project', 'mount', iso ? '/dejima/work' : '/home/alice/proj', { sub: 'rw', info: info('The work, writable.', ['isolated']) }),
@@ -111,7 +111,7 @@ export function derive(cfg) {
     leaf('dn-harness', 'proc', dnHarness(cfg, e), { sub: 'dejima --isolated',
       info: info('An anonymous isolated session darner-launch started in tmux. It never gets a project.', ['dn_harness', 'dn_net']) }),
     leaf('dn-share', 'mount', '~/shared', { sub: 'RESULT.md + .done', info: info('The agent writes RESULT.md, then touches .done.', []) }),
-  ], { sub: 'its own filter, its own namespace',
+  ], { sub: 'filter not drawn',
     info: info('Every darner task is its own dejima --isolated launch, with its own filter container and network.', ['dn_net']) });
 
   const docker = box('docker', 'net', `dejima-run-${RUN.slice(0, 6)}…`, [
@@ -119,8 +119,9 @@ export function derive(cfg) {
       info: info('The Docker bridge. Its address is the session\'s default route and part of the host set the filter clamps.', [],
         ['Docker\'s embedded resolver at 127.0.0.11 exists only on a user-defined network, which is why each launch gets one.']) }),
     netns,
-    dnSession,
   ], { info: info('A user-defined bridge network, one per launch, removed at exit.', []) });
+  const dnDocker = dnSession && box('dn-docker', 'net', 'dejima-run-8c41d2…', [dnSession], {
+    info: info('The darner task\'s own per-launch network: a separate launch, a separate filter, a separate namespace.', []) });
 
   const procs = [
     leaf('p-launcher', 'proc', 'bin/dejima', { sub: 'the launcher',
@@ -146,19 +147,19 @@ export function derive(cfg) {
       info: info('Runs dejima --isolated in a tmux window per task and reports status. A fixed command grammar; anything else is refused.', ['dn_answers']) }),
     on.devbox && leaf('p-audit', 'proc', 'dejima-devbox-audit', { sub: 'reach, hourly',
       info: info('Probes the gateway on 443, 80, and 22 and expects silence, with the forge as a positive control.', [],
-        ['PASS needs every probe to time out. Anything answering is FAIL.']) }),
+        ['PASS needs every probe to time out and the positive control to succeed. Anything answering is FAIL.', 'The IPv6 half fails on any neighbour answering ff02::1, or any global or ULA address.']) }),
     on.guard && leaf('p-guardshell', 'proc', 'dejima-guard-shell', { sub: 'forced command',
       info: info('Allows exactly two commands for the guard\'s key: drift --state and reach. Anything else exits 64.', []) }),
   ];
 
   const hostKids = [
     box('host-files', 'group', 'host files', files),
-    docker,
+    box('nets', 'group', '', [docker, dnDocker]),
     box('host-procs', 'group', 'host processes', procs),
   ];
   const hostLabel = on.devbox ? 'devbox VM' : 'your laptop';
   const dejimaHost = box('dejima-host', 'host', 'dejima host', hostKids, {
-    sub: on.devbox ? 'Debian, long-lived, never rolled back' : 'your own user, your own home directory',
+    sub: on.devbox ? 'Debian, long-lived, never rolled back on a schedule' : 'your own user, your own home directory',
     refused,
     info: info(on.devbox
       ? 'dejima runs here as it would on a laptop. The difference is the wall around this VM, enforced by the Proxmox node.'
@@ -228,7 +229,7 @@ export function derive(cfg) {
     leaf('p-dn-api', 'proc', 'darner-api :8080', { sub: 'polls every 30 s',
       info: info('The only thing frontends talk to. A bearer token per frontend, SQLite for open tasks, and an ssh key locked to darner-launch.', ['dn_front'],
         ['No per-user permissions: anyone a frontend lets in can use every harness and backend on the dejima host.']) }),
-  ], { info: info('darner-api and darner-web, under compose. It may share a machine with dejima; here it does not, so it reaches the launcher the way an admin would: SSH.', []) });
+  ], { info: info('darner-api and darner-web, under compose. It reaches the launcher over SSH with a forced-command key, whether on one machine or across two.', []) });
 
   const maubot = on.darner && cfg.dn_front.includes('maubot') && box('maubot', 'machine', 'maubot server', [
     leaf('mb-bot', 'proc', 'dragonlet plugin', { sub: 'polls /v1/events',
@@ -309,7 +310,7 @@ function ciConfined(cfg) {
       ...Array.from({ length: n }, (_, i) => leaf(`r${id}-${i + 1}`, 'proc', `act_runner ${i + 1}`, { sub: 'capacity 1',
         info: info(`Registered to ${scope} (${kind} scope). The registration scope is the real boundary, not the label.`, ['ci_count']) })),
       leaf(`job-${id}`, 'proc', 'job', { sub: `dejima-ci${id}, ci-allow-${id}`,
-        info: info('No Docker socket, cap drops, --dns at the gateway. Reaches 80/443 on its pool\'s names only.', ['ci_pools']) }),
+        info: info('No Docker socket, cap drops, --dns at the gateway. Reaches 80/443 on its pool\'s names and the base names only.', ['ci_pools']) }),
     ], { sub: kind === 'owner' ? 'every repo bob owns' : 'one repo',
       info: info(`Bridge dejima-ci${id}, address set ci-allow-${id}: the union of .dejima/allowed-domains on main across ${kind === 'owner' ? 'all of bob\'s repos' : 'alice/proj'}.`,
         ['ci_pools', 'ci_count'], n > 1 ? ['Runners in one pool share the bridge: concurrent jobs can reach each other.'] : []) })),
@@ -319,7 +320,7 @@ function ciConfined(cfg) {
 export function devboxRules(cfg) {
   const r = [
     { n: '1', dir: 'IN', act: 'ACCEPT', what: 'tcp/22 from the admin subnet' },
-    cfg.on.remote && cfg.ra_doors !== 'ssh' && { n: '2', dir: 'IN', act: 'ACCEPT', what: 'tcp/443 from the front-door subnet' },
+    { n: '2', dir: 'IN', act: 'ACCEPT', what: 'tcp/<front door> from the front-door subnet' },
     cfg.dv_addr === 'dhcp' && { n: '2a', dir: 'IN', act: 'ACCEPT', what: 'udp/68 (DHCP)' },
     cfg.on.guard && cfg.gd_place === 'other segment' && { n: '2b', dir: 'IN', act: 'ACCEPT', what: 'tcp/22 from the guard' },
     { n: '3', dir: 'OUT', act: 'ACCEPT', what: 'tcp/443 to the forge' },
@@ -339,5 +340,5 @@ export function devboxRules(cfg) {
 export function ciRules() {
   return ['1  IN ACCEPT tcp/22 from the management IP', '2  OUT ACCEPT tcp/443 to the forge', '3-4  OUT ACCEPT udp+tcp/53 to the resolver',
     '5-7  OUT DROP 10/8, 172.16/12, 192.168/16', '8  OUT DROP 169.254/16', '9  OUT DROP 100.64/10', '10  OUT DROP ::/0',
-    'policy  IN DROP, OUT ACCEPT: the public internet stays open'];
+    '1a/4a  udp/68 in, udp/67 out: only with DHCP', 'policy  IN DROP, OUT ACCEPT: the public internet stays open'];
 }

@@ -6,7 +6,7 @@
 //   info     a fact about this moment, nothing moves through a wall
 // `gone` fades nodes for the rest of the run; `kept` marks what survives.
 
-import { effective, normalise, refusals } from './config.js';
+import { effective, normalise, refusals, notes } from './config.js';
 
 const step = (path, verdict, title, detail, keys = [], o = {}) => ({ path, verdict, title, detail, keys, ...o });
 
@@ -32,6 +32,7 @@ export function scenarios(cfg, d) {
     ...(launchBlocked || [
       e.proxied && step(['p-launcher', 'p-proxy'], 'info', 'Start the credential proxy',
         `A host process on a fresh unix socket, holding the ${e.backend} credential. The container will only ever see a placeholder.`, ['proxy', 'backend']),
+      ...notes(e).map(n => step(['p-launcher'], 'warn', 'A note, and the launch carries on', n, ['internal', 'ghpush', 'firewall'])),
       step(['p-launcher', 'docker'], 'info', 'Create the network', 'dejima-run-<run id>: a user-defined bridge, one per launch.', []),
       step(['p-launcher', 'c-filter'], fw ? 'ok' : 'warn', fw ? 'Start the filter and check it' : 'Start the filter, with nothing in it',
         fw ? `nftables loads, dnsmasq starts with ${d.names.length} forwarded names, then a self-check resolves each one, asserts IPv6 is refused and AAAA stripped, and that port 22 is refused unless granted.${d.sealed ? ' The ready record says resolver_upstream: false, so the launch prints S E A L E D.' : ''}`
@@ -46,7 +47,7 @@ export function scenarios(cfg, d) {
   add('dejima', 'api', 'Ask the model', guard(e.selfHosted ? [
     e.llmByName
       ? step(['s-harness', 's-dns', 'bridge', ...nodeFw, 'lan-resolver'], 'ok', 'Look up llm.example.lan',
-          'A self-hosted base_url name is permitted and internal-exempt automatically, so its private answer is accepted. It also means the resolver keeps an upstream.', ['base_url'])
+          'The name had to be on your allowlist before dejima would launch. Then it is permitted and internal-exempt, so its private answer is accepted, and the resolver keeps an upstream.', ['base_url', 'allowed'])
       : step(['s-harness', 'g-nft'], fw ? 'ok' : 'warn', '10.0.0.10 is permitted by address',
           'An IPv4 base_url goes straight into the literal set. No DNS, so no answer to check, and internal_domains does not apply.', ['base_url']),
     step(['s-harness', 'g-nft', 'bridge', ...(dv ? ['fw-devbox'] : ['lan-llm'])], dv ? 'refused' : 'ok', dv ? 'The node firewall drops it' : 'Straight to the model',
@@ -57,7 +58,7 @@ export function scenarios(cfg, d) {
     step(['s-harness', 's-dns'], 'ok', `Look up ${e.apiHost}`, 'The API name joins the open list when the proxy is off.', ['proxy']),
     step(['s-harness', 'g-nft', ...out('net-api')], 'warn', 'Straight to the API, with the real key', 'Through nftables, through the host, out. Nothing on the way can tell your key from a copy.', ['proxy']),
   ] : [
-    step(['s-harness', 's-term'], 'ok', `${e.apiHost} resolves to 127.0.0.1`,
+    step(['s-harness', 's-term'], 'ok', e.transport === 'tls' ? `${e.apiHost} resolves to 127.0.0.1` : 'ANTHROPIC_BASE_URL → 127.0.0.1:18300',
       e.transport === 'tls' ? '/etc/hosts maps it to loopback, so no DNS query is made. A terminator with a cert dejima made for this session ends TLS there.'
         : 'ANTHROPIC_BASE_URL points at a plain-HTTP forwarder on 127.0.0.1:18300.', ['transport']),
     step(['s-term', 'm-sock', 'p-proxy'], 'ok', 'Down the socket, not the network',
@@ -128,7 +129,7 @@ export function scenarios(cfg, d) {
     e.ro !== 'unset' && step(['s-harness', 'm-ro'], 'refused', `Write to ${e.ro}`, 'Read-only mount: reads work, writes fail with EROFS.', ['ro']),
     e.rw !== 'unset' && step(['s-harness', 'm-rw', 'f-rw'], 'ok', `Write to ${e.rw}`, 'Shared by every project that mounts it.', ['rw']),
     e.rwpp !== 'unset' && step(['s-harness', 'm-rwpp', 'f-rwpp'], 'ok', `Write to ${e.rwpp}`, 'Lands in this project\'s own subdirectory.', ['rwpp']),
-    step(['s-harness', 'c-mounts'], 'refused', 'Read ~/.ssh or ~/.config/dejima', 'Not mounted, so there is no path to it. Nothing inside can see the approval store or the audit records.', []),
+    step(['s-harness', 'c-mounts'], 'refused', 'Read your SSH keys or ~/.config/dejima', 'Not mounted, so there is no path to them. Only ~/.ssh/known_hosts is, read-only. Nothing inside can see the approval store or the audit records.', []),
   ]));
 
   // Push
@@ -152,20 +153,21 @@ export function scenarios(cfg, d) {
       : step(['dejima-host', 'lan-nas'], 'warn', 'Go looking on the LAN', 'On a laptop, nothing below the container bounds it. It has your user, your home directory, and your LAN.', []),
     dv && step(['fw-devbox', 'pve-log'], 'info', 'The drop is logged', 'Written by the hypervisor. A quiet log going loud is the strongest signal you get.', []),
     dv && step(['dejima-host', 'fw-devbox', 'lan-router', 'net-unlisted'], 'warn', 'The internet is still open', 'The devbox reaches public IPv4 on any port, on purpose. The wall is around your LAN, not around the internet.', []),
-    on.guard && step(['gd-cycle', ...nodeFw, 'p-guardshell'], 'info', 'Within 15 minutes, the guard looks', 'A new file in a watched path, a new unit, or a new listener alerts at max priority. Unless the payload thought to forge the state.', []),
+    on.guard && step(['gd-cycle', ...nodeFw, 'p-guardshell'], 'info', 'Within 15 minutes, the guard looks', 'A changed critical path, a new unit, or a new listener alerts at max; any other change at high. Unless the payload thought to forge the state.', []),
   ]));
 
   // Close
   const iso = e.isolated === 'on';
   add('dejima', 'close', 'Close the session', guard([
-    step(['c-session'], 'info', 'The session container is removed', 'compose run --rm: its filesystem is gone, and with it the staged ~/.claude.json, the gitconfig copy, and any fake credential.', [], { gone: ['c-session'] }),
+    step(['c-session'], 'info', 'The session container is removed', 'compose run --rm: its filesystem is gone.', [], { gone: ['c-session'] }),
+    step(['p-launcher'], 'info', 'The per-run copies are deleted', 'Host-side temp files that were bind-mounted in: the staged ~/.claude.json, the gitconfig copy, the settings overlay, any fake credential.', []),
     e.proxied && step(['p-proxy'], 'info', 'The proxy stops', 'Its socket directory is deleted. The proxy log is summarised on your terminal: errors, auth failures, and what to do about them.', [], { gone: ['p-proxy', 'p-shipper'] }),
     step(['c-filter'], 'info', 'The filter and the network go', 'docker rm -f the filter, docker network rm dejima-run-…. Live dejima-allow --container grants die with them.', [], { gone: ['docker'] }),
     step(['p-launcher'], 'info', 'Image tags are released', 'This run\'s tags are dropped and unreferenced layers reclaimed.', []),
     iso && step(['f-project'], 'info', 'The work volume is removed', 'An isolated session keeps nothing it was not told to. An empty share is removed too.', [], { gone: ['f-project'] }),
     e.epitaph === 'on' && step(['p-launcher', 'f-stores'], 'ok', 'The epitaph is saved', 'The compaction summaries are copied host-side, to the epitaph store.', ['epitaph']),
     !iso && step(['p-launcher', 'f-project'], 'info', 'The exit-time audit runs', 'It diffs .git/config, hooks, .mcp.json, .envrc, and friends against the launch snapshot. A new core.hooksPath or credential.helper is CRITICAL.', []),
-    step(['f-share'], 'ok', 'What is left', iso ? 'The share, if the agent wrote to it. Nothing else.' : 'The project, ~/shared, writable mounts, the harness\'s per-project state, epitaphs, and the audit record.', [],
+    step(['f-share'], 'ok', 'What is left', iso ? `The share, if the agent wrote to it.${e.keep === 'on' ? ' --keep-records also kept the epitaph.' : ' Nothing else.'}` : 'The project, ~/shared, writable mounts, the harness\'s per-project state, epitaphs, and the audit record.', [],
       { kept: ['f-project', 'f-share', 'f-rw', 'f-rwpp', 'f-stores'].filter(x => !(iso && x === 'f-project')) }),
   ]));
 
@@ -197,7 +199,7 @@ export function scenarios(cfg, d) {
         : step(['lan-nas', web ? 'p-nginx' : 'p-sshd'], 'warn', 'It reaches the door', 'On a laptop the perimeter is "on my LAN". The door\'s own auth is the only gate.', []),
     ]);
     add('remote', 'ra-sandbox', 'The session tries the front door', guard([
-      step(['s-harness', 'g-nft'], fw ? 'refused' : 'warn', 'Connect to 10.0.0.24:443', fw ? 'A host address on a port nobody opened. The clamp refuses it, and nginx is not bound to the bridge either.' : 'With the firewall off, only nginx\'s bind address keeps it out.', ['firewall']),
+      step(['s-harness', 'g-nft'], fw ? 'refused' : 'warn', 'Connect to 10.0.0.24:443', fw ? 'A host address on a port nobody opened: the clamp refuses it.' : 'With the firewall off nothing keeps it out: the host delivers a packet for its own LAN address locally. Only nginx\'s auth stands between the session and a host shell.', ['firewall']),
     ]));
   }
 
@@ -205,11 +207,11 @@ export function scenarios(cfg, d) {
   if (dv) {
     add('devbox', 'dv-reach', 'The hourly reach audit', [
       step(['p-audit', 'fw-devbox', 'lan-router'], 'ok', 'Probe the gateway on 443, 80, 22', 'Every probe must time out. DROP looks like silence; a REJECT would read as FAIL.', []),
-      step(['p-audit', 'fw-devbox', 'lan-forge'], 'ok', 'Positive control: the forge', 'The forge answers on 443, so silence means blocked, not offline. Verdict PASS.', []),
-      step(['p-audit'], 'info', 'Then IPv6', 'Ping ff02::1 on the default interface: any neighbour answering is FAIL.', []),
+      step(['p-audit', 'fw-devbox', 'lan-forge'], 'ok', 'Positive control: the forge', 'The forge answers on 443, so silence means blocked, not offline.', []),
+      step(['p-audit'], 'ok', 'Then IPv6, and the verdict', 'Ping ff02::1: any neighbour answering, or any global or ULA address, is FAIL. Here nothing answered: PASS.', []),
     ]);
     add('devbox', 'dv-in', 'A LAN host tries SSH into the devbox', [
-      step(['lan-nas', 'fw-devbox'], 'refused', 'Inbound policy DROP', 'Only the admin subnet gets 22, and only the front-door subnet gets the front door.', []),
+      step(['lan-nas', 'fw-devbox'], 'refused', 'Inbound policy DROP', 'Only the admin subnets (and an off-subnet guard, by rule 2b) get 22; only the front-door subnets get the front door.', []),
       step(['lt-ssh', 'fw-devbox', 'dejima-host'], 'ok', 'You, from the admin subnet', 'Node rule 1.', []),
     ]);
   }
@@ -274,7 +276,7 @@ export function scenarios(cfg, d) {
     add('guard', 'gd-keys', 'A scan: authorized_keys changed', [
       ...collect,
       step(['gd-cycle', 'gd-baseline'], 'refused', 'A watched path changed', 'authorized_keys is a critical path: alerted at max, never ignored, never accepted by a window.', ['gd_expect']),
-      step(['gd-cycle', ...alertTo], 'ok', 'Alert: max priority', 'The body says "1 file(s) modified in ~/.ssh" and nothing more. Detail stays in dejima-guard report, on the guard.', ['gd_alert']),
+      step(['gd-cycle', ...alertTo], 'ok', 'Alert: watched path changed', 'At max: "1 line(s) changed under paths this guard treats as its own footing… Treat what it has reported since as unverified." No paths in the alert; the detail stays in dejima-guard report, on the guard.', ['gd_alert']),
     ]);
     add('guard', 'gd-listener', 'A scan: a new listener', [
       ...collect,
@@ -298,9 +300,9 @@ export function scenarios(cfg, d) {
     const sealedRefused = dnRefused.length > 0;
     const netFlag = { default: '', named: ' --drop-domains', sealed: ' --require-sealed' }[cfg.dn_net];
     const middle = [
-      step(['p-dn-api', ...nodeFw, 'p-dn-launch'], 'ok', 'ssh to the launcher', `${dv ? 'Node rule 1. ' : ''}The key is from="<API>",command="darner-launch …",restrict. The job arrives as JSON on stdin.`, []),
+      step(['p-dn-api', ...nodeFw, 'p-dn-launch'], 'ok', 'ssh to the launcher', `${dv ? 'Through an inbound SSH rule for the API host: rule 1 if it sits on an admin subnet. ' : ''}The key is from="<API>",command="darner-launch …",restrict. The job arrives as JSON on stdin.`, []),
       step(['p-dn-launch', 'dn-harness'], sealedRefused ? 'refused' : 'ok', `dejima --isolated${netFlag}`,
-        sealedRefused ? `dejima refuses the launch, and the frontend says so: ${dnRefused.join(' ')}`
+        sealedRefused ? `dejima refuses: ${dnRefused.join(' ')} The frontend only sees the task end; the reason stays in the tmux window, darner:dn-k3x7q.`
           : `In a tmux window named dn-k3x7q, with harness ${h}. An anonymous session: no project, a fresh ~/shared.`, ['dn_net', 'dn_harness']),
       !sealedRefused && step(['dn-harness', 'dn-share'], 'ok', 'RESULT.md, then .done', 'The prompt tells the agent how to deliver. A RESULT.md left without .done is still collected after 600 s of quiet.', []),
       !sealedRefused && step(['p-dn-api', ...nodeFw, 'p-dn-launch'], 'ok', 'Status poll', 'Every 30 s: ssh … status reports ready.', []),

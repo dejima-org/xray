@@ -86,8 +86,24 @@ test('dejima refusals match the docs', () => {
   assert.match(r({ sealed: 'on', harness: 'cline', backend: 'self-hosted', base_url: 'http://llm.example.lan:11434' })[0], /llm\.example\.lan/);
   assert.match(r({ internal: 'wiki.example.lan' })[0], /never permits/);
   assert.equal(r({ internal: 'wiki.example.lan', allowed: ['wiki.example.lan'] }).length, 0);
-  assert.match(r({ workflow: 'branch-push' })[0], /needs a forge/);
+  assert.match(r({ workflow: 'branch-push' })[0], /nowhere to push/);
+  assert.match(r({ workflow: 'worktree-pr' })[0], /'pr' capability/);
   assert.equal(r({ workflow: 'branch-push', isolated: 'on' }).length, 0, '--isolated forces local-only');
+  // cline cannot reach a proxied backend without the proxy and its TLS terminator
+  assert.match(r({ harness: 'cline', proxy: 'off' })[0], /proxy is off/);
+  assert.match(r({ harness: 'cline', transport: 'loopback' })[0], /loopback/);
+  assert.equal(r({ harness: 'claude-code', proxy: 'off' }).length, 0, 'only claude-code runs with the credential mounted');
+  // a self-hosted name must already be approved, and isolated reads no project approvals
+  const byName = { harness: 'cline', backend: 'self-hosted', base_url: 'http://llm.example.lan:11434' };
+  assert.match(r(byName)[0], /not on your allowlist/);
+  assert.equal(r({ ...byName, allowed: ['llm.example.lan'] }).length, 0);
+  assert.match(r({ ...byName, allowed: ['llm.example.lan'], isolated: 'on' })[0], /isolated/);
+  // an unpermitted exemption is ignored under --drop-domains, not refused
+  assert.equal(r({ internal: 'wiki.example.lan', drop: 'on' }).length, 0);
+  assert.match(r({ internal: 'wiki.example.lan', drop: 'on', harness: 'cline' }).join(), /^$/);
+  // only the first refusal is printed: sealed pre-checks come before the filter's
+  assert.equal(r({ sealed: 'on', internal: 'wiki.example.lan' }).length, 1);
+  assert.match(r({ sealed: 'on', internal: 'wiki.example.lan' })[0], /platform\.claude\.com/);
 });
 
 test('devbox-hardener moves dejima onto the Proxmox node', () => {

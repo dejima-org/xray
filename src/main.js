@@ -63,7 +63,7 @@ function renderRail() {
     if (p.always) row.disabled = true;
     const name = el('span', 'project-name', p.name);
     const blurb = el('span', 'project-blurb', p.blurb + (p.needs ? ' Adds devbox-hardener.' : ''));
-    row.append(el('span', 'switch'), name, blurb);
+    row.append(el('span', 'switch'), name, ...(p.key ? [el('code', 'key-name project-key', p.key)] : []), blurb);
     row.addEventListener('click', () => {
       c.on[p.id] = !c.on[p.id];
       if (p.id === 'devbox' && !c.on.devbox) c.on.guard = false;
