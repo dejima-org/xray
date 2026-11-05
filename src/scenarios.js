@@ -54,7 +54,7 @@ export function scenarios(cfg, d) {
       step(['s-harness', 'f-home'], 'warn', 'Add a line to ~/.bashrc, or a user unit', 'It runs again as you at your next login, long after the session that wrote it.', []),
       on.guard && step(['gd-cycle', 'fw-devbox', 'p-guardshell'], 'info', 'About every 15 minutes, the guard looks', 'Shell rc files and ~/.config/systemd/user are in the state it collects.', []),
       on.guard && (cfg.gd_alert === 'ntfy_url'
-        ? step(['gd-cycle', 'lan-ntfy', 'ph-ntfy'], 'ok', 'It pages you', 'A new or changed file there is an unexplained change, alerted at high; a new enabled unit alerts at max. It repeats every cycle until you accept the new state.', ['gd_alert'], { loud: true })
+        ? step(['gd-cycle', 'lan-ntfy', 'ph-ntfy'], 'ok', 'It pages you', 'A new or changed file there is an unexplained change, alerted at high: user units are watched as files, and only a system unit enabled with systemctl counts as a new unit, at max. It repeats every cycle until you accept the new state.', ['gd_alert'], { loud: true })
         : step(['gd-cycle'], 'ok', 'It pages you', 'alert_command gets the alert on stdin, every cycle until you accept the new state.', ['gd_alert'], { loud: true })),
     ]);
     add('dejima', 'bare-close', 'Close the session', [
