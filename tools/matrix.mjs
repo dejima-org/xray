@@ -24,10 +24,8 @@ const configs = [];
 for (const on of sets) {
   const keys = KEYS.filter(k => k.project === 'dejima' || on.includes(k.project) || (k.project === 'devbox' && on.includes('guard')));
   const bases = [fresh(on)];
-  for (const base of [fresh(on), Object.assign(fresh(on), { harness: 'cline', cline_model: 'set' })]) {
-    bases.push(base);
-    for (const backend of ['openrouter', 'self-hosted']) bases.push(Object.assign(fresh(on), { harness: 'cline', cline_model: 'set', backend }));
-  }
+  for (const cline_backend of ['anthropic', 'openrouter', 'self-hosted'])
+    bases.push(Object.assign(fresh(on), { harness: 'cline', cline_model: 'set', cline_backend }));
   for (const base of bases) {
     configs.push(normalise(structuredClone(base)));
     for (let i = 0; i < keys.length; i++) {

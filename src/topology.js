@@ -45,7 +45,7 @@ export function derive(cfg) {
       info: info(e.proxy === 'off'
         ? 'With the proxy off this file is mounted into the container: the agent holds the real credential.'
         : 'Read only by the host-side credential proxy. The container gets a placeholder.',
-        ['backend', 'proxy'], e.backend === 'anthropic' ? ['The proxy refreshes the OAuth token and writes the rotated one back here.'] : []) }),
+        ['backend', 'cline_backend', 'proxy'], e.backend === 'anthropic' ? ['The proxy refreshes the OAuth token and writes the rotated one back here.'] : []) }),
     leaf('f-stores', 'store', 'approvals, audit, epitaphs', { sub: 'never mounted',
       info: info('~/.config/dejima and ~/.local/share/dejima: what the session cannot see, so it cannot approve its own domains or rewrite its audit.',
         ['allowed', 'epitaph'], ['A [mounts] entry overlapping any of these is refused, not warned.']) }),
@@ -95,7 +95,7 @@ export function derive(cfg) {
   const session = box('c-session', 'container', 'session container', [
     leaf('s-harness', 'proc', e.harness, { sub: e.selfHosted ? `→ ${e.base_url.replace('http://', '')}` : `backend ${e.backend}`,
       info: info(`The agent. ${e.proxied ? 'It holds a placeholder credential: sandbox-credential-proxy-placeholder.' : ''}`,
-        ['harness', 'backend'], harnessFacts) }),
+        ['harness', 'backend', 'cline_backend'], harnessFacts) }),
     e.proxied && leaf('s-term', 'proc', e.transport === 'tls' ? 'TLS terminator :443' : 'forwarder :18300', {
       sub: e.transport === 'tls' ? `/etc/hosts: ${e.apiHost} → 127.0.0.1` : 'ANTHROPIC_BASE_URL',
       info: info(e.transport === 'tls'
@@ -133,7 +133,7 @@ export function derive(cfg) {
       info: info('Builds the image, starts the proxy, the network, the filter, then the session, and tears all of it down on exit.', []) }),
     e.proxied && leaf('p-proxy', 'proc', 'credential proxy', { sub: `→ ${e.apiHost}`,
       info: info('A host process on a per-session unix socket. Swaps the placeholder for the real credential and connects upstream from the host.',
-        ['proxy', 'backend'], ['Errors come back as a dejima-written 502, so provider bodies stay on the host.']) }),
+        ['proxy', 'backend', 'cline_backend'], ['Errors come back as a dejima-written 502, so provider bodies stay on the host.']) }),
     e.conversation === 'on' && leaf('p-shipper', 'proc', 'conversation shipper', { sub: 'host side',
       info: info('Ships prompts and tool calls from the host, where the session cannot kill its own oversight log.', ['conversation']) }),
     on.remote && e.ra_ntfy !== 'unset' && leaf('p-notify', 'proc', 'dejima-notify-watch', { sub: 'user unit',
@@ -251,7 +251,7 @@ export function derive(cfg) {
     needsForge && leaf('lan-forge', 'svc', 'git.example.lan', { sub: 'forge, 10.0.0.20',
       info: info('Gitea. The hardeners leave a pinhole to it on 443 (and 22 for the devbox).', ['forge']) }),
     e.selfHosted && leaf('lan-llm', 'svc', e.llmByName ? 'llm.example.lan' : '10.0.0.10:11434', { sub: 'self-hosted model',
-      info: info('No credential, so no proxy: the harness connects straight through nftables.', ['backend', 'base_url']) }),
+      info: info('No credential, so no proxy: the harness connects straight through nftables.', ['backend', 'cline_backend', 'base_url']) }),
     usesWiki && leaf('lan-wiki', 'svc', 'wiki.example.lan', { sub: 'internal, 10.0.0.30',
       info: info('A name that answers with a private address.', ['allowed', 'internal']) }),
     leaf('lan-nas', 'svc', 'NAS 10.0.0.40', { sub: 'everything else', info: info('Stands in for the rest of your network: what an escape would go looking for.', []) }),
@@ -271,8 +271,8 @@ export function derive(cfg) {
   ], { sub: '10.0.0.0/24 (example)', info: info('Private address space: what both hardeners fence the devbox and the runners out of.', []) });
 
   const internet = box('internet', 'zone', 'the internet', [
-    !e.selfHosted && e.backend !== 'openrouter' && leaf('net-api', 'svc', 'api.anthropic.com', { sub: 'model API', info: info('Reached by the host-side proxy, not by the session.', ['backend']) }),
-    e.backend === 'openrouter' && leaf('net-api', 'svc', 'openrouter.ai', { sub: 'model API', info: info('Reached by the host-side proxy, not by the session.', ['backend']) }),
+    !e.selfHosted && e.backend !== 'openrouter' && leaf('net-api', 'svc', 'api.anthropic.com', { sub: 'model API', info: info('Reached by the host-side proxy, not by the session.', ['backend', 'cline_backend']) }),
+    e.backend === 'openrouter' && leaf('net-api', 'svc', 'openrouter.ai', { sub: 'model API', info: info('Reached by the host-side proxy, not by the session.', ['backend', 'cline_backend']) }),
     e.harness === 'claude-code' && leaf('net-platform', 'svc', 'platform.claude.com', { sub: 'claude-code api_domains', info: info('Always permitted for claude-code. This is why claude-code cannot seal.', ['harness', 'sealed']) }),
     leaf('net-npm', 'svc', 'registry.npmjs.org', { sub: 'built-in', info: info('On the built-in list; dropped by --drop-domains.', ['drop']) }),
     leaf('net-pypi', 'svc', 'pypi.org', { sub: 'needs approval', info: info('Reachable once the project declares it and you approve it.', ['allowed']) }),
@@ -292,7 +292,7 @@ export function derive(cfg) {
   if (e.rwpp !== 'unset') link('f-rwpp', 'm-rwpp', 'rw', `${e.rwpp}/projects/${SLUG} on the host, mounted at ${e.rwpp}: writable, and this project's alone.`, ['rwpp']);
   if (e.proxied) {
     link('m-sock', 'p-proxy', 'socket', 'The credential proxy\'s unix socket, in a directory mounted read-only. The session\'s only way to the model API: no network involved.', ['proxy', 'transport']);
-    link('f-cred', 'p-proxy', 'reads', 'The proxy reads the real credential on the host. It never enters the container.', ['proxy', 'backend']);
+    link('f-cred', 'p-proxy', 'reads', 'The proxy reads the real credential on the host. It never enters the container.', ['proxy', 'backend', 'cline_backend']);
   }
   if (!e.selfHosted && e.proxy === 'off') link('f-cred', 'm-cred', 'warn', 'With [credentials] proxy = off, the real credential file is mounted into the container, where the agent can read it.', ['proxy']);
   if (on.remote && cfg.ra_ntfy !== 'unset') link('m-notify', 'p-notify', 'rw', 'The session\'s marker directory, watched from the host. A hook writes an empty done or waiting file; the watcher turns it into a push.', ['ra_ntfy']);

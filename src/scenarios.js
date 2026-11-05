@@ -36,7 +36,7 @@ export function scenarios(cfg, d) {
       ['isolated', 'allowed', 'global']),
     ...(launchBlocked || [
       e.proxied && step(['p-launcher', 'p-proxy'], 'info', 'Start the credential proxy',
-        `A host process on a fresh unix socket, holding the ${e.backend} credential. The container will only ever see a placeholder.`, ['proxy', 'backend']),
+        `A host process on a fresh unix socket, holding the ${e.backend} credential. The container will only ever see a placeholder.`, ['proxy', 'backend', 'cline_backend']),
       ...notes(e).map(n => step(['p-launcher'], 'warn', 'The launch carries on', n, ['internal', 'firewall'])),
       step(['p-launcher', 'docker'], 'info', 'Create the network', 'dejima-run-<run id>: a user-defined bridge, one per launch.', []),
       step(['p-launcher', 'c-filter'], fw ? 'ok' : 'warn', fw ? 'Start the filter and check it' : 'Start the filter, with nothing in it',
@@ -60,7 +60,7 @@ export function scenarios(cfg, d) {
           'An IPv4 base_url goes straight into the literal set. No DNS, so no answer to check, and internal_domains does not apply.', ['base_url']),
     step(['s-harness', 'g-nft', 'bridge', ...(dv ? ['fw-devbox'] : ['lan-llm'])], dv ? 'refused' : 'ok', dv ? 'The node firewall drops it' : 'Straight to the model',
       dv ? 'dejima allows it, but the devbox may only reach the forge and the resolver on the LAN. Rules 7-9 drop 10/8. A LAN model needs its own pinhole above the DROPs.'
-        : 'No credential exists, so there is no proxy and no placeholder. The request crosses nftables like any other permitted connection.', ['backend']),
+        : 'No credential exists, so there is no proxy and no placeholder. The request crosses nftables like any other permitted connection.', ['backend', 'cline_backend']),
   ]) : e.proxy === 'off' ? [
     step(['s-harness', 'm-cred'], 'warn', 'Read the real credential', 'With [credentials] proxy = off, the credential file is mounted into the container. The agent can read it, and send it anywhere it can reach.', ['proxy']),
     fw && step(['s-harness', 's-dns'], 'ok', `Look up ${e.apiHost}`, 'The API name joins the open list when the proxy is off.', ['proxy']),
@@ -72,9 +72,9 @@ export function scenarios(cfg, d) {
     step(['s-term', 'm-sock', 'p-proxy'], 'ok', 'Down the socket, not the network',
       'A unix socket in a read-only mounted directory. API traffic never crosses nftables, and the API name is not on the allowlist: resolving it by DNS returns nothing.', ['proxy']),
     step(['p-proxy', 'f-cred'], 'info', 'Swap in the real credential',
-      e.backend === 'anthropic' ? 'The proxy replaces the placeholder Bearer token with your OAuth token, refreshing it when it expires.' : 'The proxy replaces the placeholder key with the real one.', ['backend']),
+      e.backend === 'anthropic' ? 'The proxy replaces the placeholder Bearer token with your OAuth token, refreshing it when it expires.' : 'The proxy replaces the placeholder key with the real one.', ['backend', 'cline_backend']),
     step(['p-proxy', ...nodeFw, 'lan-router', 'net-api'], 'ok', 'Upstream, from the host',
-      dv ? 'The proxy runs on the devbox, outside the container. The node allows public IPv4 by its outbound policy.' : 'The proxy connects from your laptop\'s own network.', ['backend']),
+      dv ? 'The proxy runs on the devbox, outside the container. The node allows public IPv4 by its outbound policy.' : 'The proxy connects from your laptop\'s own network.', ['backend', 'cline_backend']),
   ]));
 
   // Install a package
