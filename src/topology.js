@@ -41,7 +41,7 @@ export function derive(cfg) {
       info: info(`Appears at ${e.rwpp} inside, but each project gets its own subdirectory.`, ['rwpp']) }),
     !e.selfHosted && leaf('f-cred', 'file', e.backend === 'anthropic' ? '~/.claude/.credentials.json'
       : e.backend === 'anthropic-api-key' ? '~/.claude.json' : '[backend.openrouter] credential_file', {
-      sub: 'the real credential', tone: e.proxy === 'off' ? 'bad' : 'ok',
+      sub: 'the real credential', tone: e.proxy === 'off' ? 'warn' : 'ok',
       info: info(e.proxy === 'off'
         ? 'With the proxy off this file is mounted into the container: the agent holds the real credential.'
         : 'Read only by the host-side credential proxy. The container gets a placeholder.',
@@ -52,7 +52,7 @@ export function derive(cfg) {
   ];
 
   const filter = box('c-filter', 'container', 'filter container', [
-    leaf('g-nft', 'gate', 'nftables', { sub: fw ? 'policy drop' : 'no rules loaded', tone: fw ? 'ok' : 'bad',
+    leaf('g-nft', 'gate', 'nftables', { sub: fw ? 'policy drop' : 'no rules loaded', tone: fw ? 'ok' : 'warn',
       info: info('The egress policy: one table, every chain policy drop. Anything not permitted gets a TCP reset, not a timeout.',
         ['firewall', 'ghpush', 'internal'],
         ['IPv6 is refused by the first rule.', 'Host addresses (the gateway and every address the host answers on) are open on no port by default.',
@@ -77,7 +77,7 @@ export function derive(cfg) {
     e.rwpp !== 'unset' && leaf('m-rwpp', 'mount', e.rwpp, { sub: 'rw, this project\'s', info: info('Writes land in this project\'s subdirectory.', ['rwpp']) }),
     e.proxied && leaf('m-sock', 'mount', 'proxy socket dir', { sub: 'ro',
       info: info('The directory holding the credential proxy\'s unix socket, mounted read-only. API traffic never touches the network.', ['proxy']) }),
-    !e.selfHosted && e.proxy === 'off' && leaf('m-cred', 'mount', 'real credential', { sub: 'ro', tone: 'bad',
+    !e.selfHosted && e.proxy === 'off' && leaf('m-cred', 'mount', 'real credential', { sub: 'ro', tone: 'warn',
       info: info('[credentials] proxy = off: the kill switch. The agent can read and send the real credential.', ['proxy']) }),
     on.remote && leaf('m-notify', 'mount', '/run/dejima-notify', { sub: 'rw, empty markers',
       info: info('The session\'s only remote-access surface: a hook writes an empty done or waiting file here.', ['ra_ntfy']) }),
@@ -284,7 +284,7 @@ export function derive(cfg) {
   if (e.rw !== 'unset') link('f-rw', 'm-rw', 'rw');
   if (e.rwpp !== 'unset') link('f-rwpp', 'm-rwpp', 'rw');
   if (e.proxied) { link('m-sock', 'p-proxy', 'socket'); link('f-cred', 'p-proxy', 'reads'); }
-  if (!e.selfHosted && e.proxy === 'off') link('f-cred', 'm-cred', 'bad');
+  if (!e.selfHosted && e.proxy === 'off') link('f-cred', 'm-cred', 'warn');
   if (on.remote && cfg.ra_ntfy !== 'unset') link('m-notify', 'p-notify', 'rw');
   return { root, edges, e, refused, sealed, names };
 }

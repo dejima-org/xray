@@ -295,13 +295,12 @@ h2, h3, h4 { font-weight: 500; margin: 0; }
   border-radius: 6px;
 }
 .k-gate .n-label { color: var(--ok); }
-.k-gate.t-bad { border-color: var(--refused); background: color-mix(in srgb, var(--refused) 10%, var(--bg-well)); }
-.k-gate.t-bad .n-label { color: var(--refused); }
+.k-gate.t-warn { border-color: var(--warn); background: color-mix(in srgb, var(--warn) 10%, var(--bg-well)); }
+.k-gate.t-warn .n-label { color: var(--warn); }
 .on-wall { position: absolute; top: -14px; left: 50%; translate: -50% 0; z-index: 2; padding: 3px 9px 4px; }
 .on-wall .n-sub { display: none; }
-.t-bad:not(.k-gate) { border-color: var(--refused); }
-.t-bad .n-sub { color: var(--refused); }
-.t-warn { border-color: var(--warn); }
+.leaf.t-warn:not(.k-gate) { border-color: var(--warn); }
+.t-warn .n-sub { color: var(--warn); }
 .t-ghost { opacity: .35; filter: grayscale(1); }
 
 .n-refused {
@@ -368,7 +367,7 @@ h2, h3, h4 { font-weight: 500; margin: 0; }
 .l-rw { stroke: var(--key); stroke-dasharray: 5 4; opacity: .6; }
 .l-ro { stroke: var(--fg-faint); stroke-dasharray: 2 4; opacity: .8; }
 .l-socket, .l-reads { stroke: var(--info); opacity: .7; }
-.l-bad { stroke: var(--refused); stroke-dasharray: 5 4; }
+.l-warn { stroke: var(--warn); stroke-dasharray: 5 4; }
 .trail { fill: none; stroke-width: 3; stroke-linecap: round; opacity: .85; }
 .packet { stroke: var(--bg-well); stroke-width: 2; }
 .trail.v-ok { stroke: var(--ok); } .packet.v-ok { fill: var(--ok); }
