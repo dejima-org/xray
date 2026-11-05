@@ -90,6 +90,7 @@ function renderRail() {
     }
     rail.append(sec);
   }
+  if (sourcesBox) rail.append(sourcesBox);
   rail.scrollTop = keep;
 }
 
@@ -395,4 +396,32 @@ document.addEventListener('keydown', ev => {
   if (ev.key === 'Escape') { state.picked = null; stage.mark([], 'picked'); renderInspector(); }
 });
 
+// What the picture was checked against. Shown so that a picture that has
+// fallen behind says so, rather than passing for current.
+async function showSources() {
+  let src;
+  try { src = await (await fetch('sources.json')).json(); } catch { return; }
+  const label = (name, x) => x.release ? `${name} ${x.release}`
+    : x.version && x.ref !== 'main' ? `${name} ${x.version}, unreleased (${x.ref} at ${x.commit.slice(0, 7)})`
+      : `${name} ${x.ref} at ${x.commit.slice(0, 7)}${x.version ? `, VERSION ${x.version}` : ''}`;
+  const as = $('#as-of');
+  as.textContent = `as of ${label('dejima', src.dejima)}`;
+  as.hidden = false;
+  as.addEventListener('click', ev => { ev.preventDefault(); tab('rail'); document.getElementById('sources')?.scrollIntoView({ block: 'center' }); });
+  sourcesBox = el('section', 'sources');
+  sourcesBox.id = 'sources';
+  sourcesBox.append(el('h2', null, 'What this shows'),
+    el('p', 'key-effect', 'Checked against these versions. Anything newer may behave differently from what is drawn here.'));
+  const ul = el('ul');
+  for (const [name, x] of Object.entries(src)) {
+    const li = el('li', null, label(name, x));
+    li.append(el('span', 'key-where', ` checked ${x.verified}`));
+    ul.append(li);
+  }
+  sourcesBox.append(ul);
+  $('#rail-body').append(sourcesBox);
+}
+let sourcesBox = null;
+
 apply();
+showSources();

@@ -1,5 +1,5 @@
 # The files that make up the site. Everything else stays out of what gets published.
-SITE := index.html styles.css src assets
+SITE := index.html styles.css sources.json src assets
 
 .PHONY: build check test serve clean
 
