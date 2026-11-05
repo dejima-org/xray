@@ -70,7 +70,7 @@ export function derive(cfg) {
       ['firewall'], ['cap_drop ALL; its only network capabilities are NET_ADMIN and NET_RAW.', 'Killing it leaves the session with loopback only.']) });
 
   const mounts = [
-    leaf('m-project', 'mount', iso ? '/dejima/work' : '/home/alice/proj', { sub: 'rw', info: info('The work, writable.', ['isolated']) }),
+    leaf('m-project', 'mount', iso ? '/dejima/work' : '/home/alice/proj', { sub: iso ? 'rw' : 'rw, .git/hooks ro', info: info(iso ? 'The work, writable.' : 'The work, writable, with .git/hooks laid over read-only.', ['isolated']) }),
     leaf('m-share', 'mount', '~/shared', { sub: 'rw', info: info('The hand-off directory: what the agent leaves for you, or for darner, to collect.', ['isolated']) }),
     e.ro !== 'unset' && leaf('m-ro', 'mount', e.ro, { sub: 'ro', info: info('Reads work; writes fail with EROFS.', ['ro']) }),
     e.rw !== 'unset' && leaf('m-rw', 'mount', e.rw, { sub: 'rw', info: info('Writes land on the host directory itself.', ['rw']) }),
@@ -79,6 +79,10 @@ export function derive(cfg) {
       info: info('The directory holding the credential proxy\'s unix socket, mounted read-only. API traffic never touches the network.', ['proxy']) }),
     !e.selfHosted && e.proxy === 'off' && leaf('m-cred', 'mount', 'real credential', { sub: 'ro', tone: 'warn',
       info: info('[credentials] proxy = off: the kill switch. The agent can read and send the real credential.', ['proxy']) }),
+    e.agent && leaf('m-agent', 'mount', '/ssh-agent', { sub: 'your forwarded agent', tone: 'warn',
+      info: info('A pushing workflow with no session key mounts your SSH agent. The session cannot read your keys, but it can sign with any of them.', ['ssh_key', 'workflow']) }),
+    e.ssh_key !== 'unset' && leaf('m-key', 'mount', 'session key', { sub: 'root-only, loaded then deleted',
+      info: info('[identity.default] ssh_key is mounted for root, loaded into a container-local agent, and the copy deleted before the harness starts. Setting it withdraws the forwarded agent.', ['ssh_key']) }),
     on.remote && leaf('m-notify', 'mount', '/run/dejima-notify', { sub: 'rw, empty markers',
       info: info('The session\'s only remote-access surface: a hook writes an empty done or waiting file here.', ['ra_ntfy']) }),
   ];
@@ -147,7 +151,8 @@ export function derive(cfg) {
       info: info('Runs dejima --isolated in a tmux window per task and reports status. A fixed command grammar; anything else is refused.', ['dn_answers']) }),
     on.devbox && leaf('p-audit', 'proc', 'dejima-devbox-audit', { sub: 'reach, hourly',
       info: info('Probes the gateway on 443, 80, and 22 and expects silence, with the forge as a positive control.', [],
-        ['PASS needs every probe to time out and the positive control to succeed. Anything answering is FAIL.', 'The IPv6 half fails on any neighbour answering ff02::1, or any global or ULA address.']) }),
+        ['PASS needs every probe to time out and the positive control to succeed. Anything answering is FAIL.', 'The IPv6 half fails on any global or ULA address, or any neighbour answering ff02::1.',
+          'A forge listed in /etc/hosts passes the control from the file alone, so a dead network would read as PASS.']) }),
     on.guard && leaf('p-guardshell', 'proc', 'dejima-guard-shell', { sub: 'forced command',
       info: info('Allows exactly two commands for the guard\'s key: drift --state and reach. Anything else exits 64.', []) }),
   ];
@@ -313,13 +318,16 @@ function ciConfined(cfg) {
         info: info('GETs .dejima/allowed-domains?ref=main from the forge API for each trusted repo, never from a checkout. Any failure keeps the last good list.', ['ci_pools'],
           ['An empty result is refused; the render must pass dnsmasq --test.', 'Not per job: jobs see whatever was rendered last.']) }),
       leaf('ci-dns', 'svc', 'dnsmasq on dejima-ci0', { sub: 'refuses unlisted names',
-        info: info('One resolver for every pool. Every job can resolve every allowlisted name; it can only connect to its own pool\'s set.', ['ci_pools']) }),
+        info: info('One resolver for every pool. Every job can resolve every allowlisted name; it can only connect to its own pool\'s set.', ['ci_pools'],
+          ['Base names (/etc/dejima-ci/base-domains, e.g. the forge and deb.debian.org) go into ci-allow-base, which every pool bridge matches.', 'A private answer is dropped by stop-dns-rebind, except for the forge.']) }),
       leaf('ci-fwd', 'gate', 'DEJIMA-CI-FWD', { sub: 'tcp 80/443 to the set',
         info: info('Per bridge: established, then 80 and 443 to the pool\'s set or the base set, then REJECT. All IPv6 is rejected.', ['ci_pools']) }),
     ]),
     ...pools.map(([id, scope, kind]) => box(`pool-${id}`, 'net', `pool ${id}: ${scope}`, [
       ...Array.from({ length: n }, (_, i) => leaf(`r${id}-${i + 1}`, 'proc', `act_runner ${i + 1}`, { sub: 'capacity 1',
         info: info(`Registered to ${scope} (${kind} scope). The registration scope is the real boundary, not the label.`, ['ci_count']) })),
+      n > 1 && leaf(`job-${id}b`, 'proc', 'another job', { sub: `runner 2's, same bridge`,
+        info: info('A second runner\'s job lands on the same pool bridge.', ['ci_count']) }),
       leaf(`job-${id}`, 'proc', 'job', { sub: `dejima-ci${id}, ci-allow-${id}`,
         info: info('No Docker socket, cap drops, --dns at the gateway. Reaches 80/443 on its pool\'s names and the base names only.', ['ci_pools']) }),
     ], { sub: kind === 'owner' ? 'every repo bob owns' : 'one repo',
@@ -338,12 +346,13 @@ export function devboxRules(cfg) {
     { n: '4', dir: 'OUT', act: 'ACCEPT', what: 'tcp/22 to the forge' },
     { n: '5-6', dir: 'OUT', act: 'ACCEPT', what: 'udp+tcp/53 to the resolver' },
     cfg.dv_addr === 'dhcp' && { n: '6a', dir: 'OUT', act: 'ACCEPT', what: 'udp/67 (DHCP)' },
-    cfg.dv_6b === 'on' && { n: '6b', dir: 'OUT', act: 'ACCEPT', what: 'tcp/8443 to ntfy' },
+    cfg.dv_6b === 'on' && { n: '6b', dir: 'OUT', act: 'ACCEPT', what: 'tcp/8443 to an ntfy-only listener (on a shared proxy\'s 443 it would open every vhost behind it)' },
     { n: '7-9', dir: 'OUT', act: 'DROP', what: '10/8, 172.16/12, 192.168/16 (logged)' },
     { n: '10', dir: 'OUT', act: 'DROP', what: '169.254/16 (logged)' },
     { n: '11', dir: 'OUT', act: 'DROP', what: '100.64/10 (logged)' },
     { n: '12', dir: 'OUT', act: 'DROP', what: '::/0, all IPv6 (logged)' },
     { n: 'policy', dir: 'IN', act: 'DROP', what: 'everything else inbound' },
+    { n: 'policy', dir: 'OUT', act: 'ACCEPT', what: 'everything else outbound: the public internet' },
   ];
   return r.filter(Boolean);
 }

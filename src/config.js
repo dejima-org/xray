@@ -25,11 +25,14 @@ export const KEYS = [
       ? ['anthropic', 'anthropic-api-key', 'openrouter', 'self-hosted']
       : ['anthropic', 'anthropic-api-key']).map(v => ({ v })),
     def: 'anthropic',
-    effect: 'Where the model is. Proxied backends keep the credential on the host; self-hosted has none to keep.' },
+    effect: 'Where the model is. Proxied backends keep the credential on the host; self-hosted has none to keep. openrouter is drawn with its credential_file set.' },
+  { id: 'cline_model', project: 'dejima', group: 'Agent', where: '~/.config/dejima/config', key: '[harness.cline] model',
+    opts: [{ v: 'unset' }, { v: 'example-model' }], def: 'unset', show: c => c.harness === 'cline',
+    effect: 'No default, on purpose: unset, dejima refuses to launch cline at all.' },
   { id: 'base_url', project: 'dejima', group: 'Agent', where: '~/.config/dejima/config', key: '[backend.self-hosted] base_url',
     opts: [{ v: 'http://10.0.0.10:11434', label: 'an address' }, { v: 'http://llm.example.lan:11434', label: 'a name' }],
     def: 'http://10.0.0.10:11434', show: c => c.backend === 'self-hosted',
-    effect: 'An address is permitted as-is, no DNS. A name must already be on your allowlist, and needs the resolver, so the session cannot seal.' },
+    effect: 'An address is permitted as-is, no DNS. A name must already be approved, globally or by the project, and needs the resolver, so the session cannot seal.' },
   { id: 'proxy', project: 'dejima', group: 'Agent', where: '~/.config/dejima/config', key: '[credentials] proxy',
     opts: onOff, def: 'on', show: c => c.backend !== 'self-hosted',
     effect: 'off mounts the real credential file into the container. Only claude-code can run that way; cline refuses.' },
@@ -54,19 +57,25 @@ export const KEYS = [
     opts: onOff, def: 'on', effect: 'off loads no rules: the session keeps its bridge network, unfiltered, with the host\'s reach.' },
   { id: 'allowed', project: 'dejima', group: 'Network', where: 'project file, approved on the host', key: '.dejima/allowed-domains',
     multi: true, opts: [{ v: 'pypi.org' }, { v: 'wiki.example.lan' }, { v: 'llm.example.lan' }], def: [],
-    effect: 'Names the project asks for. Nothing is permitted until dejima-project approve.' },
+    effect: 'Names the project asks for. Nothing is permitted until dejima-project approve. Not read by an isolated launch.' },
+  { id: 'global', project: 'dejima', group: 'Network', where: 'dejima-allow --global, on the host', key: 'global approvals',
+    multi: true, opts: [{ v: 'pypi.org' }, { v: 'wiki.example.lan' }, { v: 'llm.example.lan' }], def: [],
+    effect: 'Names approved for every launch, isolated ones included. Dropped by --drop-domains.' },
   { id: 'internal', project: 'dejima', group: 'Network', where: '~/.config/dejima/config', key: '[core] internal_domains',
     opts: [{ v: 'unset' }, { v: 'wiki.example.lan' }], def: 'unset',
-    effect: 'Lets an already-permitted name answer with a private address. It never permits a name. Ignored under --drop-domains for names that are not permitted.' },
+    effect: 'Lets a permitted name answer with a private address; without it, the launch\'s self-check refuses one that does. It never permits a name.' },
   { id: 'ghpush', project: 'dejima', group: 'Network', where: 'dejima launch flag', key: '--allow-github-push', flag: true,
-    opts: onOff, def: 'off', effect: 'Opens port 22 to GitHub\'s ranges for this launch. Under --drop-domains the ranges are not fetched, so it opens nothing.' },
+    opts: onOff, def: 'off', effect: 'Opens port 22 to GitHub and lets the push guard pass github.com, even under local-only. Under --drop-domains the ranges are not fetched.' },
 
   { id: 'forge', project: 'dejima', group: 'Forge', where: '~/.config/dejima/config', key: '[core] forge',
     opts: [{ v: 'none' }, { v: 'gitea' }, { v: 'github' }], def: 'none',
-    effect: 'Which forge the session may talk to, and which forge CLI it gets.' },
+    effect: 'Which forge the session may talk to, and which forge CLI it gets. Drawn with [forge.gitea] ssh_host, api, and token_file set, or [forge.github] push_token_file.' },
   { id: 'workflow', project: 'dejima', group: 'Forge', where: '~/.config/dejima/config', key: '[core] workflow',
     opts: [{ v: 'local-only' }, { v: 'branch-push' }, { v: 'worktree-pr' }], def: 'local-only',
-    effect: 'local-only refuses every push. The others push branches, never main or master.' },
+    effect: 'local-only refuses every push. The others push branches, never main or master, and every workflow blocks merges.' },
+  { id: 'ssh_key', project: 'dejima', group: 'Forge', where: '~/.config/dejima/config', key: '[identity.default] ssh_key',
+    opts: [{ v: 'unset' }, { v: '~/.ssh/dejima_ed25519' }], def: 'unset',
+    effect: 'A key for the session alone. Unset, a pushing workflow mounts your forwarded agent at /ssh-agent instead (drawn assuming one is running).' },
 
   { id: 'ro', project: 'dejima', group: 'Mounts', where: '~/.config/dejima/config', key: '[mounts] readonly',
     opts: [{ v: 'unset' }, { v: '/srv/datasets' }], def: 'unset', effect: 'Mounted at the same path, read-only.' },
@@ -91,19 +100,19 @@ export const KEYS = [
     opts: [{ v: 'web + ssh' }, { v: 'web' }, { v: 'ssh' }], def: 'web + ssh',
     effect: 'Web is nginx and ttyd; SSH is a phone key whose forced command is dejima-attach.' },
   { id: 'ra_ntfy', project: 'remote', group: 'Front doors', where: '~/.config/dejima/config', key: '[remote-access] ntfy_url',
-    opts: [{ v: 'unset' }, { v: 'https://ntfy.example.lan:8443/dejima' }], def: 'https://ntfy.example.lan:8443/dejima',
-    effect: 'Where dejima-notify-watch posts when a session finishes or needs input. Unset by default; set here to show it.' },
+    opts: [{ v: 'unset' }, { v: 'https://ntfy.example.lan:8443/dejima' }], def: 'unset',
+    effect: 'Where dejima-notify-watch posts when a session finishes or needs input. Unset, the watcher will not start. A public ntfy server needs no devbox pinhole.' },
   { id: 'ra_base', project: 'remote', group: 'Front doors', where: '~/.config/dejima/config', key: '[remote-access] base_url',
-    opts: [{ v: 'unset' }, { v: 'https://dejima.example.lan' }], def: 'https://dejima.example.lan',
-    effect: 'Adds a tap-to-attach link to each push. Unset by default.' },
+    opts: [{ v: 'unset' }, { v: 'https://dejima.example.lan' }], def: 'unset',
+    effect: 'Adds a tap-to-attach link to each push, whichever front doors exist.' },
 
   // devbox-hardener: Proxmox firewall built in the console, plus the guest bootstrap
   { id: 'dv_addr', project: 'devbox', group: 'Node firewall', where: 'dejima-devbox-bootstrap', key: 'static IP', setup: true,
     opts: [{ v: 'static' }, { v: 'dhcp' }], def: 'static',
     effect: 'DHCP needs rules 2a and 6a. A pinned address needs neither.' },
   { id: 'dv_6b', project: 'devbox', group: 'Node firewall', where: 'Proxmox security group', key: 'rule 6b (ntfy pinhole)', setup: true,
-    opts: onOff, def: 'on',
-    effect: 'notify-watch runs on the VM, so without 6b its push is dropped as LAN traffic.' },
+    opts: onOff, def: 'off',
+    effect: 'Optional, outside the twelve base rules. notify-watch runs on the VM, so without 6b a push to a LAN ntfy is dropped as LAN traffic.' },
 
   // ci-hardener
   { id: 'ci_tiers', project: 'ci', group: 'Runners', where: 'dejima-ci-bootstrap --role', key: 'tiers', setup: true,
@@ -199,6 +208,10 @@ export function effective(c) {
     openrouter: 'openrouter.ai', 'self-hosted': e.base_url.includes('llm.') ? 'llm.example.lan' : '10.0.0.10' }[e.backend];
   e.llmByName = e.selfHosted && e.base_url.includes('llm.');
   e.pushes = e.workflow !== 'local-only';
+  // Where a push may go, and what signs it.
+  e.pushHosts = [...(e.pushes && e.forge === 'gitea' ? ['git.example.lan'] : []),
+    ...((e.pushes && e.forge === 'github') || e.ghpush === 'on' ? ['github.com'] : [])];
+  e.agent = e.pushes && e.ssh_key === 'unset';
   return e;
 }
 
@@ -206,12 +219,13 @@ export function effective(c) {
 export function permitted(e) {
   if (e.firewall === 'off') return [];
   const out = [];
-  const add = (name, why, cls = 'open') => out.push({ name, why, cls });
+  const add = (name, why, cls = 'open') => { if (!out.some(o => o.name === name)) out.push({ name, why, cls }); };
   const drop = e.drop === 'on';
   if (!drop) {
     add('github.com', 'built-in, 443 only', 'github');
     add('githubusercontent.com', 'built-in, 443 only', 'github');
     add('githubassets.com', 'built-in, 443 only', 'github');
+    add('api.github.com', 'where GitHub\'s ranges are fetched from', 'github');
     add('registry.npmjs.org', 'built-in');
     add('release-assets.githubusercontent.com', 'built-in');
   }
@@ -219,12 +233,25 @@ export function permitted(e) {
   if (!e.selfHosted && e.proxy === 'off') add(e.apiHost, 'proxy off: the API name joins the open list');
   if (e.llmByName && llmApproved(e)) add('llm.example.lan', 'self-hosted base_url, internal-exempt');
   if (!drop && e.forge === 'gitea') add('git.example.lan', 'configured forge, internal-exempt');
-  if (e.isolated !== 'on') for (const d of e.allowed) if (!out.some(o => o.name === d)) add(d, 'project approval');
+  if (!drop) for (const d of e.global) add(d, 'global approval');
+  if (e.isolated !== 'on') for (const d of e.allowed) add(d, 'project approval');
   if (e.loki !== 'unset') add('loki.example.lan', 'Loki host, internal-exempt');
   return out;
 }
 
-function llmApproved(e) { return e.isolated !== 'on' && e.allowed.includes('llm.example.lan'); }
+// Names in the picture that answer with a private address, and the ones a
+// launch exempts from refusing that without being told.
+const PRIVATE = ['wiki.example.lan', 'llm.example.lan', 'git.example.lan', 'loki.example.lan'];
+export function exempt(e) {
+  const x = new Set(['git.example.lan', 'loki.example.lan']);
+  if (e.internal !== 'unset') x.add(e.internal);
+  if (e.llmByName) x.add('llm.example.lan');
+  return x;
+}
+
+// cline's host check reads the approval stores, global and (outside --isolated)
+// project, not --domains.
+function llmApproved(e) { return e.global.includes('llm.example.lan') || (e.isolated !== 'on' && e.allowed.includes('llm.example.lan')); }
 
 // The first thing dejima would refuse, in the order it checks. Each is an
 // exit, so only one is ever printed.
@@ -233,12 +260,15 @@ export function refusal(e) {
     return "workflow 'worktree-pr' requires the 'pr' capability, and [core] forge = none has none.";
   if (e.pushes && e.forge === 'none')
     return `[core] workflow = ${e.workflow} pushes, and [core] forge = none gives it nowhere to push.`;
-  if (e.harness === 'cline' && !e.selfHosted) {
-    if (e.proxy === 'off') return 'harness.cline: the proxy is off for this backend, and cline has no way to reach a proxied backend without it. Only claude-code can run with the real credential mounted.';
-    if (e.transport === 'loopback') return 'harness.cline: [credentials] transport is loopback, and cline has no way to reach a proxied backend without the TLS terminator.';
+  if (e.harness === 'cline') {
+    if (e.cline_model === 'unset') return 'harness.cline: no model is configured. Cline has no default worth dejima choosing for you. Set [harness.cline] model.';
+    if (!e.selfHosted) {
+      if (e.proxy === 'off') return 'harness.cline: the proxy is off for this backend, and cline has no way to reach a proxied backend without it. Only claude-code can run with the real credential mounted.';
+      if (e.transport === 'loopback') return 'harness.cline: [credentials] transport is loopback, and cline has no way to reach a proxied backend without the TLS terminator.';
+    }
   }
   if (e.llmByName && !llmApproved(e))
-    return `harness.cline: refusing [backend.self-hosted] base_url ${e.base_url}: llm.example.lan is not on your allowlist${e.isolated === 'on' ? ', and an isolated launch reads no project approvals' : ''}.`;
+    return `harness.cline: refusing [backend.self-hosted] base_url ${e.base_url}: llm.example.lan is not host-local and not approved${e.isolated === 'on' ? ' (an isolated launch reads global approvals only)' : ''}. dejima-allow --global or --project would let it in.`;
   if (e.sealed === 'on') {
     if (e.firewall === 'off') return '--require-sealed refuses a launch with [core] firewall = off.';
     if (e.harness === 'claude-code') return '--require-sealed: claude-code always permits platform.claude.com, so its resolver keeps an upstream.';
@@ -246,18 +276,23 @@ export function refusal(e) {
   const p = permitted(e).map(x => x.name);
   if (e.firewall === 'on' && e.internal !== 'unset' && !p.includes(e.internal) && e.drop !== 'on')
     return `[core] internal_domains names ${e.internal}, which is not permitted. An exemption never permits; the filter stops the launch.`;
+  if (e.firewall === 'on') {
+    const x = exempt(e);
+    const bad = p.filter(n => PRIVATE.includes(n) && !x.has(n));
+    if (bad.length)
+      return `The filter's self-check (check 7): these permitted names are answered with an address inside a private network, and this policy refuses such answers: ${bad.join(', ')}. List them in [core] internal_domains if pointing inside is intended, or remove them.`;
+  }
   if (e.sealed === 'on' && p.length) return `--require-sealed: the session is not sealed. Still permitted: ${p.join(', ')}.`;
   return null;
 }
 
-// Things a launch prints and carries on past.
+// What a launch that goes ahead says along the way, and where it says it.
 export function notes(e) {
   const n = [];
   const p = permitted(e).map(x => x.name);
   if (e.firewall === 'on' && e.internal !== 'unset' && !p.includes(e.internal) && e.drop === 'on')
-    n.push(`--drop-domains: ignoring internal-destination exemptions for names it dropped: ${e.internal}.`);
-  if (e.ghpush === 'on' && e.drop === 'on') n.push('--allow-github-push opens nothing here: under --drop-domains GitHub\'s ranges are not fetched.');
-  if (e.firewall === 'off') n.push('[core] firewall = off: no rules are loaded.');
+    n.push(`Ignored, not refused: --drop-domains drops exemptions for names that are not permitted (${e.internal}). The note goes to the filter's log (docker logs), not your terminal.`);
+  if (e.firewall === 'off') n.push('Nothing prints a warning: the banner shows firewall off, and the launch carries on.');
   return n;
 }
 

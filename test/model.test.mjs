@@ -78,32 +78,55 @@ test('a refused packet never reaches its destination', () => {
   }
 });
 
-test('dejima refusals match the docs', () => {
+test('dejima refusals match dejima\'s own checks', () => {
   const r = o => { const c = normalise(Object.assign(defaults(), o)); return derive(c).refused; };
+  const cline = { harness: 'cline', cline_model: 'example-model' };
   assert.equal(r({}).length, 0);
-  assert.match(r({ sealed: 'on' })[0], /platform\.claude\.com/);
-  assert.equal(r({ sealed: 'on', harness: 'cline', backend: 'self-hosted' }).length, 0);
-  assert.match(r({ sealed: 'on', harness: 'cline', backend: 'self-hosted', base_url: 'http://llm.example.lan:11434' })[0], /llm\.example\.lan/);
-  assert.match(r({ internal: 'wiki.example.lan' })[0], /never permits/);
-  assert.equal(r({ internal: 'wiki.example.lan', allowed: ['wiki.example.lan'] }).length, 0);
+  // provider checks come first
   assert.match(r({ workflow: 'branch-push' })[0], /nowhere to push/);
   assert.match(r({ workflow: 'worktree-pr' })[0], /'pr' capability/);
   assert.equal(r({ workflow: 'branch-push', isolated: 'on' }).length, 0, '--isolated forces local-only');
+  // cline has no default model, and refuses before anything else of its own
+  assert.match(r({ harness: 'cline' })[0], /no model is configured/);
+  assert.match(r({ harness: 'cline', proxy: 'off' })[0], /no model is configured/);
   // cline cannot reach a proxied backend without the proxy and its TLS terminator
-  assert.match(r({ harness: 'cline', proxy: 'off' })[0], /proxy is off/);
-  assert.match(r({ harness: 'cline', transport: 'loopback' })[0], /loopback/);
-  assert.equal(r({ harness: 'claude-code', proxy: 'off' }).length, 0, 'only claude-code runs with the credential mounted');
-  // a self-hosted name must already be approved, and isolated reads no project approvals
-  const byName = { harness: 'cline', backend: 'self-hosted', base_url: 'http://llm.example.lan:11434' };
-  assert.match(r(byName)[0], /not on your allowlist/);
+  assert.match(r({ ...cline, proxy: 'off' })[0], /proxy is off/);
+  assert.match(r({ ...cline, transport: 'loopback' })[0], /loopback/);
+  assert.equal(r({ proxy: 'off' }).length, 0, 'only claude-code runs with the credential mounted');
+  // a self-hosted name must already be approved; isolated reads global approvals only
+  const byName = { ...cline, backend: 'self-hosted', base_url: 'http://llm.example.lan:11434' };
+  assert.match(r(byName)[0], /not host-local and not approved/);
   assert.equal(r({ ...byName, allowed: ['llm.example.lan'] }).length, 0);
-  assert.match(r({ ...byName, allowed: ['llm.example.lan'], isolated: 'on' })[0], /isolated/);
-  // an unpermitted exemption is ignored under --drop-domains, not refused
+  assert.match(r({ ...byName, allowed: ['llm.example.lan'], isolated: 'on' })[0], /global approvals only/);
+  assert.equal(r({ ...byName, global: ['llm.example.lan'], isolated: 'on' }).length, 0);
+  // sealed: firewall off and claude-code are refused before the build
+  assert.match(r({ sealed: 'on' })[0], /platform\.claude\.com/);
+  assert.match(r({ sealed: 'on', firewall: 'off' })[0], /firewall = off/);
+  assert.equal(r({ ...cline, sealed: 'on', backend: 'self-hosted' }).length, 0);
+  assert.equal(r({ ...cline, sealed: 'on' }).length, 0, 'a proxied backend keeps its name off the allowlist');
+  assert.match(r({ ...cline, sealed: 'on', allowed: ['pypi.org'] })[0], /not sealed/);
+  // internal_domains never permits; under --drop-domains it is ignored instead
+  assert.match(r({ internal: 'wiki.example.lan' })[0], /never permits/);
   assert.equal(r({ internal: 'wiki.example.lan', drop: 'on' }).length, 0);
-  assert.match(r({ internal: 'wiki.example.lan', drop: 'on', harness: 'cline' }).join(), /^$/);
-  // only the first refusal is printed: sealed pre-checks come before the filter's
+  // a permitted name answering privately fails the filter's self-check unless exempt
+  assert.match(r({ allowed: ['wiki.example.lan'] })[0], /check 7/);
+  assert.match(r({ global: ['wiki.example.lan'] })[0], /check 7/);
+  assert.equal(r({ allowed: ['wiki.example.lan'], internal: 'wiki.example.lan' }).length, 0);
+  assert.equal(r({ allowed: ['wiki.example.lan'], isolated: 'on' }).length, 0, 'isolated reads no project approvals');
+  assert.match(r({ allowed: ['llm.example.lan'] })[0], /check 7/, 'an approval alone is not an exemption');
+  assert.equal(r({ ...byName, allowed: ['llm.example.lan'] }).length, 0, 'the base_url host is exempt');
+  assert.equal(r({ forge: 'gitea' }).length, 0, 'the forge is exempt');
+  assert.equal(r({ global: ['wiki.example.lan'], drop: 'on' }).length, 0, '--drop-domains drops global approvals');
+  // only the first refusal is ever printed
   assert.equal(r({ sealed: 'on', internal: 'wiki.example.lan' }).length, 1);
-  assert.match(r({ sealed: 'on', internal: 'wiki.example.lan' })[0], /platform\.claude\.com/);
+});
+
+test('the forwarded names match the policy', () => {
+  const n = o => derive(normalise(Object.assign(defaults(), o))).names.map(x => x.name);
+  assert.equal(n({}).length, 7, 'built-ins, api.github.com, and platform.claude.com');
+  assert.ok(n({}).includes('api.github.com'));
+  assert.deepEqual(n({ drop: 'on' }), ['platform.claude.com']);
+  assert.equal(n({ harness: 'cline', cline_model: 'x', drop: 'on' }).length, 0);
 });
 
 test('devbox-hardener moves dejima onto the Proxmox node', () => {
