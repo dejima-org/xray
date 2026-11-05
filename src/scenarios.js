@@ -175,8 +175,8 @@ export function scenarios(cfg, d) {
     on.guard && step(['gd-cycle', ...nodeFw, 'p-guardshell'], 'info', 'About every 15 minutes, the guard looks', 'It collects the devbox\'s state over SSH and diffs it against the baseline it keeps on its own disk, where root on the devbox cannot reach.', []),
     on.guard && (cfg.gd_alert === 'ntfy_url'
       ? step(['gd-cycle', 'lan-ntfy', 'ph-ntfy'], 'ok', 'It pages you', 'If the payload left anything the guard watches, the next cycle alerts at max priority: a changed critical path, a new unit or listener, or changes alongside a failed reach. Any other change alerts at high. It keeps alerting every cycle until you accept the new state. What it cannot catch is a payload that forges the state it reports.', ['gd_alert'], { loud: true })
-      : step(['gd-cycle'], 'ok', 'It pages you', 'alert_command runs with the alert on stdin, every cycle until you accept the new state: a changed critical path, a new unit or listener, or changes alongside a failed reach. What it cannot catch is a payload that forges the state it reports.', ['gd_alert'], { loud: true })),
-    on.guard && cfg.gd_hb !== 'unset' && step(['gd-cycle', 'lan-kuma'], 'ok', 'And Kuma pages you too', 'An alerting cycle sends no heartbeat, so about 1200 s after the last one Uptime Kuma fires on its own. So does a payload that kills the guard or cuts it off: silence pages you as well.', ['gd_hb'], { loud: true }),
+      : step(['gd-cycle'], 'ok', 'It pages you', 'alert_command runs with the alert\'s title and body on stdin, every cycle until you accept the new state. It gets every alert, at any priority, and is never told which; the loudest are a changed critical path, a new unit or listener, or changes alongside a failed reach. What it cannot catch is a payload that forges the state it reports.', ['gd_alert'], { loud: true })),
+    on.guard && cfg.gd_hb !== 'unset' && step(['gd-cycle', 'lan-kuma'], 'ok', 'And Kuma pages you too', 'An alerting cycle sends no heartbeat, so about 1200 s after the last one Uptime Kuma fires on its own. So it does for a guard that dies, or a payload that cuts the devbox off from it: silence pages you as well.', ['gd_hb'], { loud: true }),
   ]));
 
   // Close
@@ -317,7 +317,7 @@ export function scenarios(cfg, d) {
       ...collect,
       step(['gd-cycle', 'gd-baseline'], 'refused', 'A watched path changed', 'authorized_keys is a critical path: alerted at max, never ignored, never held by a window.', ['gd_expect']),
       alert('watched path changed', 'max', '"2 line(s) changed under paths this guard treats as its own footing… Treat what it has reported since as unverified." An edited file is two diff lines, old and new'),
-      after(untilAccept),
+      after('until dejima-guard accept takes the new state as the baseline. A closing expect window does not: it keeps critical paths at their old baseline'),
     ]);
     add('guard', 'gd-listener', 'A scan: a new listener', [
       ...collect,
@@ -334,7 +334,7 @@ export function scenarios(cfg, d) {
     add('guard', 'gd-down', 'The devbox stops answering', [
       step(['gd-cycle', 'fw-devbox'], 'refused', 'SSH times out', `After ssh_timeout = 10 s.${win ? ' Inside a window this is held, with no heartbeat either.' : ''}`, ['gd_expect']),
       win ? (hb ? step(['gd-cycle', 'lan-kuma'], 'warn', 'No heartbeat', 'Held is not clean: with the devbox gone for more than about 20 minutes, Kuma fires anyway.', ['gd_hb']) : null)
-        : step(['gd-cycle', ...alertTo], 'ok', 'Alert: unreachable', `${ntfy ? 'At max priority' : 'alert_command gets the title and body on stdin, with no priority'}: "dejima-guard could not collect from devbox. It may be down, off the network, or refusing this key." ssh's own error goes to the guard's journal (or docker logs); dejima-guard report still shows the previous cycle.`, ['gd_alert'], { loud: true }),
+        : step(['gd-cycle', ...alertTo], 'ok', 'Alert: unreachable', `${ntfy ? 'At max priority' : 'alert_command gets the title and body on stdin, with no priority'}: "dejima-guard could not collect from <devbox_host>. It may be down, off the network, or refusing this key." ssh's own error goes to the guard's journal (or docker logs); dejima-guard report still shows the previous cycle.`, ['gd_alert'], { loud: true }),
       !win && hb && step(['gd-cycle', 'lan-kuma'], 'info', 'And no heartbeat', 'The alerting cycle sends none, so Kuma fires too, about 1200 s after the last ping.', ['gd_hb']),
     ]);
     add('guard', 'gd-pull', 'The devbox tries to reach the guard', [

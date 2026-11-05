@@ -286,14 +286,14 @@ export function refusal(e) {
   }
   const p = permitted(e).map(x => x.name);
   if (e.firewall === 'on' && e.internal !== 'unset' && !p.includes(e.internal) && e.drop !== 'on')
-    return `ERROR: the internal-destination exemption names destinations nothing permits: ${e.internal}. [core] internal_domains and --internal-domain both exempt a name from the check that refuses an answer pointing inside a private network. Neither makes the name reachable - approve it as well: dejima-allow --global ${e.internal}        # or --project`;
+    return `The egress control for this session stopped before it was ready, so there is no filter for the sandbox to run behind. Refusing to start it. The filter said: ERROR: the internal-destination exemption names destinations nothing permits: ${e.internal} [core] internal_domains and --internal-domain both exempt a name from the check that refuses an answer pointing inside a private network. Neither makes the name reachable - approve it as well: dejima-allow --global ${e.internal}        # or --project. An isolated launch has no approval store, so there it is a line in the file given to --domains.`;
   if (e.firewall === 'on') {
     const x = exempt(e);
     const bad = p.filter(n => PRIVATE.includes(n) && !x.has(n));
     if (bad.length)
       return `The egress control for this session stopped before it was ready. The filter said: check 7: these permitted names are answered with an address inside a private network, and this policy refuses such answers: ${bad.map(n => `${n} (open/strict)`).join(' ')}. That is this configuration disagreeing with itself - list them in [core] internal_domains (or --internal-domain, for one launch) if pointing inside is intended, or remove them.`;
   }
-  if (e.sealed === 'on' && p.length) return `--require-sealed: this session did not seal. Refusing to start it. A name is permitted, so the resolver has an upstream and the session can look names up: ${p.join(' ')}`;
+  if (e.sealed === 'on' && p.length) return `--require-sealed: this session did not seal. Refusing to start it. A name is permitted, so the resolver has an upstream and the session can look names up: ${p.map(n => `${n}  (open class)`).join(' ')}. Each was named by this launch - the project's approved domains, --domains, the harness's model API, the log endpoint. A model reached by an address needs no name; --no-log drops the log endpoint.`;
   return null;
 }
 
