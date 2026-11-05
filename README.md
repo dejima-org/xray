@@ -39,7 +39,7 @@ LAN addresses are private-range examples (`10.0.0.0/24`), because dejima's priva
 
 ## Deploy
 
-Served at `xray.dejima.branderson.io`, from the same web host as the landing page and the same way:
+Served at `dejima-xray.branderson.io`, from the same web host as the landing page and the same way:
 
 ```
 forge (Gitea), on every push to main
@@ -56,7 +56,7 @@ web host, every 5 minutes (deploy/dejima-xray-pull.timer)
        3. atomically repoint the `current` symlink at it
        4. keep the newest 5 releases
 
-nginx  root = /srv/www/xray.dejima.branderson.io/current  (deploy/nginx.conf)
+nginx  root = /srv/www/dejima-xray.branderson.io/current  (deploy/nginx.conf)
 ```
 
 The web host pulls rather than CI pushing, because the runner executes agent-authored code and is kept off the network the web host sits on. CI talks only to the forge; the web host talks only to the forge, read-only. Neither holds a credential for the other, and the artifact upload uses the run's own token.
@@ -72,7 +72,7 @@ This reuses what the landing page's deploy already created: the `site-deploy` fo
 **Web host, once.**
 
 ```sh
-install -d -o site-deploy -g site-deploy -m 755 /srv/www/xray.dejima.branderson.io
+install -d -o site-deploy -g site-deploy -m 755 /srv/www/dejima-xray.branderson.io
 
 # Fetch just deploy/. --config-env keeps the token out of argv and out of the
 # clone's .git/config. Needs git 2.31+.
@@ -93,7 +93,7 @@ systemctl enable --now dejima-xray-pull.timer
 
 The script and units have their own names, so they sit beside the landing page's `pull-dejima-site.sh` and `dejima-site-pull.*` without touching them. `SITE_FORGE_API` in the service names the forge by its public hostname; if the web host reaches it by another name, override it with `systemctl edit dejima-xray-pull.service` rather than editing the committed file.
 
-Add the directives in `deploy/nginx.conf` to a new `xray.dejima.branderson.io` server block inside the host's existing TLS setup (the name needs a DNS record and a certificate), then `nginx -t && systemctl reload nginx`. The `current` symlink is resolved per request, so later deploys need no reload.
+Add the directives in `deploy/nginx.conf` to a new `dejima-xray.branderson.io` server block inside the host's existing TLS setup (one label under branderson.io, so the existing wildcard certificate covers it), then `nginx -t && systemctl reload nginx`. The `current` symlink is resolved per request, so later deploys need no reload.
 
 `pull-site.sh` needs bash, curl, jq, unzip, and coreutils.
 
@@ -108,11 +108,11 @@ unset GIT_AUTH
 ### Checking a deploy
 
 ```sh
-curl -s -o /dev/null -w "%{http_code}\n" https://xray.dejima.branderson.io/
-curl -s https://xray.dejima.branderson.io/sources.json | jq -r .dejima.release
+curl -s -o /dev/null -w "%{http_code}\n" https://dejima-xray.branderson.io/
+curl -s https://dejima-xray.branderson.io/sources.json | jq -r .dejima.release
 ```
 
-The first prints 200 and the second the dejima release the picture shows. `readlink /srv/www/xray.dejima.branderson.io/current` on the host names the commit being served. Then look at it in a browser, on a phone too: the picture can't be judged from status codes.
+The first prints 200 and the second the dejima release the picture shows. `readlink /srv/www/dejima-xray.branderson.io/current` on the host names the commit being served. Then look at it in a browser, on a phone too: the picture can't be judged from status codes.
 
 ### Rollback
 
@@ -120,7 +120,7 @@ Releases are kept in `releases/`, each named after the first 12 characters of it
 
 ```sh
 systemctl stop dejima-xray-pull.timer       # or the next run redeploys main
-cd /srv/www/xray.dejima.branderson.io
+cd /srv/www/dejima-xray.branderson.io
 ls -1t releases                             # pick the release to restore
 sudo -u site-deploy sh -c 'ln -sfn releases/<id> current.new && mv -T current.new current'
 ```
