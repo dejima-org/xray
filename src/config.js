@@ -3,20 +3,20 @@
 // values the picture can show, not every value the tool accepts.
 
 export const PROJECTS = [
-  { id: 'dejima', name: 'dejima', always: true,
-    blurb: 'The sandbox: a session container that can only reach what its filter allows.' },
-  { id: 'remote', name: 'remote access', key: '[remote-access] enabled', blurb: 'Reach your sessions from a phone, over the web or SSH.' },
+  { id: 'dejima', name: 'dejima',
+    blurb: 'The sandbox: a session container that can only reach what its filter allows. Off, the agent runs straight on the machine.' },
+  { id: 'remote', name: 'remote access', key: '[remote-access] enabled', blurb: 'Reach your sessions from a phone, over the web or SSH.', needs: ['dejima'] },
   { id: 'devbox', name: 'dejima-devbox-hardener', blurb: 'Moves dejima onto a Proxmox VM whose LAN reach is fenced from outside the guest.' },
   { id: 'ci', name: 'dejima-ci-hardener', blurb: 'CI runners on Proxmox VMs, fenced off your LAN. Confined runners reach only what main declares.' },
   { id: 'guard', name: 'dejima-guard', blurb: 'A second machine that checks the devbox every 15 minutes.', needs: ['devbox'] },
-  { id: 'darner', name: 'darner', blurb: 'Send a task from Matrix or a web page; get the result back.' },
+  { id: 'darner', name: 'darner', blurb: 'Send a task from Matrix or a web page; get the result back.', needs: ['dejima'] },
 ];
 
 const onOff = [{ v: 'on' }, { v: 'off' }];
 
 export const KEYS = [
   // dejima: [core] and friends, ~/.config/dejima/config
-  { id: 'harness', project: 'dejima', group: 'Agent', where: '~/.config/dejima/config', key: '[core] harness',
+  { id: 'harness', project: 'dejima', group: 'Agent', always: true, where: '~/.config/dejima/config', key: '[core] harness',
     opts: [{ v: 'claude-code' }, { v: 'cline' }], def: 'claude-code',
     effect: 'Which agent runs in the session container, and which guards it hosts. Required: there is no default.' },
   { id: 'backend', project: 'dejima', group: 'Agent', where: '~/.config/dejima/config', key: '[harness.claude-code] backend',
@@ -172,7 +172,7 @@ export const keyById = Object.fromEntries(KEYS.map(k => [k.id, k]));
 
 export function keyName(k, c) { return typeof k.key === 'function' ? k.key(c) : k.key; }
 export function keyOpts(k, c) { return typeof k.opts === 'function' ? k.opts(c) : k.opts; }
-export function keyShown(k, c) { return c.on[k.project] !== false && (!k.show || k.show(c)); }
+export function keyShown(k, c) { return (c.on[k.project] !== false || k.always) && (!k.show || k.show(c)); }
 
 export function defaults() {
   const c = { on: { dejima: true, remote: false, devbox: false, ci: false, guard: false, darner: false } };
@@ -184,6 +184,7 @@ export function defaults() {
 export function normalise(c) {
   if (!['anthropic', 'anthropic-api-key'].includes(c.backend)) c.backend = 'anthropic';
   if (c.on.guard) c.on.devbox = true;
+  if (!c.on.dejima) { c.on.remote = false; c.on.darner = false; }
   if (!c.on.remote) c.dn_ra = 'unset';
   return c;
 }

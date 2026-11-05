@@ -2253,6 +2253,253 @@
  },
  {
   "project": "dejima",
+  "scenario": "bare-api",
+  "step": "Read the real credential",
+  "verdict": "warn",
+  "path": "s-harness → f-cred",
+  "detail": "It is a file in your home directory. The agent holds the real thing, not a placeholder.",
+  "cfg": [
+   "-dejima"
+  ]
+ },
+ {
+  "project": "dejima",
+  "scenario": "bare-api",
+  "step": "Straight to the API",
+  "verdict": "warn",
+  "path": "s-harness → fw-devbox → lan-router → net-api",
+  "detail": "And to anywhere else, with the same credential: nothing on the way can tell your key from a copy.",
+  "cfg": [
+   "-dejima",
+   "+devbox"
+  ]
+ },
+ {
+  "project": "dejima",
+  "scenario": "bare-api",
+  "step": "Straight to the API",
+  "verdict": "warn",
+  "path": "s-harness → lan-router → net-api",
+  "detail": "And to anywhere else, with the same credential: nothing on the way can tell your key from a copy.",
+  "cfg": [
+   "-dejima"
+  ]
+ },
+ {
+  "project": "dejima",
+  "scenario": "bare-api",
+  "step": "Straight to the model",
+  "verdict": "warn",
+  "path": "s-harness → lan-llm",
+  "detail": "No credential to steal here, but nothing decides what else the agent reaches on the way.",
+  "cfg": [
+   "-dejima"
+  ]
+ },
+ {
+  "project": "dejima",
+  "scenario": "bare-api",
+  "step": "The node firewall drops it",
+  "verdict": "refused",
+  "path": "s-harness → fw-devbox",
+  "detail": "Rules 7-9 drop 10/8 on the node, sandbox or not. A LAN model needs its own pinhole.",
+  "cfg": [
+   "-dejima",
+   "+devbox"
+  ]
+ },
+ {
+  "project": "dejima",
+  "scenario": "bare-close",
+  "step": "Nothing to tear down",
+  "verdict": "info",
+  "path": "s-harness",
+  "detail": "There was no container, no filter, and no proxy. Everything it changed, everywhere it could reach, stays changed.",
+  "cfg": [
+   "-dejima"
+  ]
+ },
+ {
+  "project": "dejima",
+  "scenario": "bare-keys",
+  "step": "Read ~/.config",
+  "verdict": "warn",
+  "path": "s-harness → f-tokens",
+  "detail": "Forge, cloud, and registry tokens, at whatever scope you gave them.",
+  "cfg": [
+   "-dejima"
+  ]
+ },
+ {
+  "project": "dejima",
+  "scenario": "bare-keys",
+  "step": "Read ~/.ssh/id_ed25519",
+  "verdict": "warn",
+  "path": "s-harness → f-ssh",
+  "detail": "Anything the key opens, the agent opens: your servers, your forge, wherever you have put the public half.",
+  "cfg": [
+   "-dejima"
+  ]
+ },
+ {
+  "project": "dejima",
+  "scenario": "bare-keys",
+  "step": "Send them anywhere",
+  "verdict": "warn",
+  "path": "s-harness → fw-devbox → lan-router → net-unlisted",
+  "detail": "There is no allowlist: every name resolves and every address is reachable. A request to example.net leaves like any other.",
+  "cfg": [
+   "-dejima",
+   "+devbox"
+  ]
+ },
+ {
+  "project": "dejima",
+  "scenario": "bare-keys",
+  "step": "Send them anywhere",
+  "verdict": "warn",
+  "path": "s-harness → lan-router → net-unlisted",
+  "detail": "There is no allowlist: every name resolves and every address is reachable. A request to example.net leaves like any other.",
+  "cfg": [
+   "-dejima"
+  ]
+ },
+ {
+  "project": "dejima",
+  "scenario": "bare-lan",
+  "step": "Go looking on the LAN",
+  "verdict": "refused",
+  "path": "s-harness → fw-devbox",
+  "detail": "The node firewall still drops it: rules 7-9 on the Proxmox node never depended on dejima. The drop is logged to pve-firewall.log.",
+  "cfg": [
+   "-dejima",
+   "+devbox"
+  ]
+ },
+ {
+  "project": "dejima",
+  "scenario": "bare-lan",
+  "step": "Go looking on the LAN",
+  "verdict": "warn",
+  "path": "s-harness → lan-nas",
+  "detail": "Your NAS, your router's admin page, anything your laptop can reach: the agent reaches it too, as you.",
+  "cfg": [
+   "-dejima"
+  ]
+ },
+ {
+  "project": "dejima",
+  "scenario": "bare-lan",
+  "step": "The internet is still open",
+  "verdict": "warn",
+  "path": "s-harness → fw-devbox → lan-router → net-unlisted",
+  "detail": "The devbox reaches public IPv4 by its outbound ACCEPT policy, sandbox or not.",
+  "cfg": [
+   "-dejima",
+   "+devbox"
+  ]
+ },
+ {
+  "project": "dejima",
+  "scenario": "bare-persist",
+  "step": "About every 15 minutes, the guard looks",
+  "verdict": "info",
+  "path": "gd-cycle → fw-devbox → p-guardshell",
+  "detail": "Shell rc files and ~/.config/systemd/user are in the state it collects.",
+  "cfg": [
+   "-dejima",
+   "+devbox",
+   "+guard"
+  ]
+ },
+ {
+  "project": "dejima",
+  "scenario": "bare-persist",
+  "step": "Add a line to ~/.bashrc, or a user unit",
+  "verdict": "warn",
+  "path": "s-harness → f-home",
+  "detail": "It runs again as you at your next login, long after the session that wrote it.",
+  "cfg": [
+   "-dejima"
+  ]
+ },
+ {
+  "project": "dejima",
+  "scenario": "bare-persist",
+  "step": "It pages you",
+  "verdict": "ok",
+  "path": "gd-cycle → lan-ntfy → ph-ntfy",
+  "detail": "A new or changed file there is an unexplained change, alerted at high: user units are watched as files, and only a system unit enabled with systemctl counts as a new unit, at max. It repeats every cycle until you accept the new state.",
+  "cfg": [
+   "-dejima",
+   "+devbox",
+   "+guard"
+  ]
+ },
+ {
+  "project": "dejima",
+  "scenario": "bare-persist",
+  "step": "It pages you",
+  "verdict": "ok",
+  "path": "gd-cycle",
+  "detail": "alert_command gets the alert on stdin, every cycle until you accept the new state.",
+  "cfg": [
+   "-dejima",
+   "+devbox",
+   "+guard",
+   "gd_alert=\"alert_command\""
+  ]
+ },
+ {
+  "project": "dejima",
+  "scenario": "bare-push",
+  "step": "git push origin main",
+  "verdict": "warn",
+  "path": "s-harness → lan-forge",
+  "detail": "With your own key or token, so whatever you may push, it may. Nothing checks the branch or the host, and nothing blocks a merge.",
+  "cfg": [
+   "-dejima",
+   "+ci"
+  ]
+ },
+ {
+  "project": "dejima",
+  "scenario": "bare-push",
+  "step": "git push origin main",
+  "verdict": "warn",
+  "path": "s-harness → lan-router → net-github",
+  "detail": "With your own key or token, so whatever you may push, it may. Nothing checks the branch or the host, and nothing blocks a merge.",
+  "cfg": [
+   "-dejima"
+  ]
+ },
+ {
+  "project": "dejima",
+  "scenario": "bare-push",
+  "step": "The push queues CI",
+  "verdict": "warn",
+  "path": "cip-runner → fw-ci-p → lan-forge",
+  "detail": "The CI hardener still bounds what that job can reach, sandbox or not.",
+  "cfg": [
+   "-dejima",
+   "+ci",
+   "ci_tiers=\"privileged\""
+  ]
+ },
+ {
+  "project": "dejima",
+  "scenario": "bare-push",
+  "step": "The push queues CI",
+  "verdict": "warn",
+  "path": "r1-1 → fw-ci-c → lan-forge",
+  "detail": "The CI hardener still bounds what that job can reach, sandbox or not.",
+  "cfg": [
+   "-dejima",
+   "+ci"
+  ]
+ },
+ {
+  "project": "dejima",
   "scenario": "close",
   "step": "An empty share is removed",
   "verdict": "info",

@@ -64,13 +64,13 @@ function renderRail() {
     const row = el('button', 'project');
     row.type = 'button';
     row.setAttribute('aria-pressed', String(!!c.on[p.id]));
-    if (p.always) row.disabled = true;
     const name = el('span', 'project-name', p.name);
-    const blurb = el('span', 'project-blurb', p.blurb + (p.needs ? ' Adds devbox-hardener.' : ''));
+    const blurb = el('span', 'project-blurb', p.blurb + (p.needs?.includes('devbox') ? ' Adds devbox-hardener.' : p.needs?.includes('dejima') ? ' Needs dejima.' : ''));
     row.append(el('span', 'switch'), name, ...(p.key ? [el('code', 'key-name project-key', p.key)] : []), blurb);
     row.addEventListener('click', () => {
       c.on[p.id] = !c.on[p.id];
       if (p.id === 'devbox' && !c.on.devbox) c.on.guard = false;
+      if (c.on[p.id]) for (const n of p.needs || []) c.on[n] = true;
       apply();
     });
     add.append(row);
@@ -78,7 +78,6 @@ function renderRail() {
   rail.append(add);
 
   for (const p of PROJECTS) {
-    if (!c.on[p.id]) continue;
     const keys = KEYS.filter(k => k.project === p.id && keyShown(k, c));
     if (!keys.length) continue;
     const sec = el('section', 'keys');

@@ -73,11 +73,14 @@ export class Stage {
       const head = el.querySelector(':scope > .n-head');
       head.hidden = !node.label && !node.sub;
       let ref = el.querySelector(':scope > .n-refused');
-      if (node.refused?.length) {
-        if (!ref) { ref = document.createElement('div'); ref.className = 'n-refused'; ref.setAttribute('role', 'alert'); head.after(ref); }
+      const banner = node.refused?.length ? { title: 'dejima refuses to launch', lines: node.refused, cls: '' }
+        : node.alert ? { ...node.alert, cls: 'n-alert' } : null;
+      if (banner) {
+        if (!ref) { ref = document.createElement('div'); ref.setAttribute('role', 'alert'); head.after(ref); }
+        ref.className = `n-refused ${banner.cls}`;
         const h = document.createElement('strong');
-        h.textContent = 'dejima refuses to launch';
-        ref.replaceChildren(h, ...node.refused.map(t => Object.assign(document.createElement('p'), { textContent: t })));
+        h.textContent = banner.title;
+        ref.replaceChildren(h, ...banner.lines.map(t => Object.assign(document.createElement('p'), { textContent: t })));
       } else ref?.remove();
       el.classList.toggle('empty', node.children.length === 0);
       const kids = el.querySelector(':scope > .n-kids');

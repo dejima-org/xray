@@ -139,6 +139,21 @@ test('blocked branches come from the workflow, not from having a push host', () 
   assert.ok(steps({ forge: 'gitea' }).some(st => /merge/.test(st.title)), 'local-only still blocks merges');
 });
 
+test('without dejima the agent runs on the host, and the node firewall still holds', () => {
+  const c = normalise(Object.assign(defaults(), { on: { ...defaults().on, dejima: false, remote: true, darner: true } }));
+  assert.equal(c.on.remote, false, 'remote access needs dejima');
+  assert.equal(c.on.darner, false, 'darner needs dejima');
+  const d = derive(c);
+  assert.equal(d.refused.length, 0);
+  const ids = new Set([...walk(d.root)].map(n => n.id));
+  assert.ok(!ids.has('c-session') && !ids.has('c-filter'), 'no containers');
+  assert.ok(ids.has('f-ssh'), 'your keys are in reach');
+  const lan = dv => { const x = normalise(Object.assign(defaults(), { on: { ...defaults().on, dejima: false, devbox: dv } }));
+    return scenarios(x, derive(x)).find(s => s.id === 'bare-lan').steps[0].verdict; };
+  assert.equal(lan(false), 'warn');
+  assert.equal(lan(true), 'refused', 'devbox-hardener does not depend on dejima');
+});
+
 test('devbox-hardener moves dejima onto the Proxmox node', () => {
   const c = defaults();
   const where = cfg => { for (const n of walk(derive(cfg).root)) if ((n.children || []).some(k => k.id === 'dejima-host')) return n.id; };

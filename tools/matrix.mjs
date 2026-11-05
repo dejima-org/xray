@@ -15,14 +15,16 @@ const variants = (k, c) => {
   const opts = keyOpts(k, c).map(o => o.v);
   return k.multi ? [[], ...opts.map(v => [v]), opts] : opts;
 };
-const fresh = on => { const c = defaults(); for (const p of on) c.on[p] = true; return c; };
+// A project id turns that project on; with a leading '!', off.
+const fresh = on => { const c = defaults(); for (const p of on) c.on[p.replace('!', '')] = !p.startsWith('!'); return c; };
 
 // Defaults, then every single change and every pair of changes, over the
 // project combinations that change what is drawn.
-const sets = [[], ['remote'], ['devbox'], ['ci'], ['guard'], ['darner'], ['remote', 'devbox'], ['darner', 'devbox', 'remote']];
+const sets = [[], ['remote'], ['devbox'], ['ci'], ['guard'], ['darner'], ['remote', 'devbox'], ['darner', 'devbox', 'remote'],
+  ['!dejima'], ['!dejima', 'devbox'], ['!dejima', 'guard'], ['!dejima', 'ci']];
 const configs = [];
 for (const on of sets) {
-  const keys = KEYS.filter(k => k.project === 'dejima' || on.includes(k.project) || (k.project === 'devbox' && on.includes('guard')));
+  const keys = KEYS.filter(k => (k.project === 'dejima' && (!on.includes('!dejima') || k.always)) || on.includes(k.project) || (k.project === 'devbox' && on.includes('guard')));
   const bases = [fresh(on)];
   for (const cline_backend of ['anthropic', 'openrouter', 'self-hosted'])
     bases.push(Object.assign(fresh(on), { harness: 'cline', cline_model: 'set', cline_backend }));
@@ -42,7 +44,7 @@ for (const on of sets) {
 
 const diff = c => {
   const out = [];
-  for (const p of PROJECTS) if (c.on[p.id] !== D.on[p.id]) out.push(`+${p.id}`);
+  for (const p of PROJECTS) if (c.on[p.id] !== D.on[p.id]) out.push(`${c.on[p.id] ? '+' : '-'}${p.id}`);
   for (const k of KEYS) if (c.on[k.project] !== false && JSON.stringify(c[k.id]) !== JSON.stringify(D[k.id])) out.push(`${k.id}=${JSON.stringify(c[k.id])}`);
   return out;
 };
