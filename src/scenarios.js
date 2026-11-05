@@ -298,7 +298,8 @@ export function scenarios(cfg, d) {
     const alertTo = ntfy ? ['lan-ntfy', 'ph-ntfy'] : ['gd-cycle'];
     const alert = (title, pri, body) => step(['gd-cycle', ...alertTo], 'ok', `Alert: ${title}`,
       `${ntfy ? `At ${pri} priority` : 'alert_command gets the title and body on stdin, with no priority'}${body ? `: ${body}.` : '.'} No paths or unit names in it; the detail stays in dejima-guard report, on the guard.`, ['gd_alert'], { loud: pri !== 'low' });
-    const after = step(['gd-cycle'], 'info', 'No heartbeat, and it repeats', `A cycle that alerted sends no heartbeat${hb ? '' : ' (and there is no heartbeat_url anyway)'}, and neither does one whose alert failed to send, so a broken alert route still trips the dead-man's switch. check never moves the baseline, so the same finding alerts every 15 minutes until dejima-guard accept.`, ['gd_hb']);
+    const after = until => step(['gd-cycle'], 'info', 'No heartbeat, and it repeats', `${hb ? 'A cycle that alerted sends no heartbeat, and neither does one whose alert failed to send, so a broken alert route still trips the dead-man\'s switch.' : 'There is no heartbeat_url, so there is no dead-man\'s switch: if the alert fails to send, nothing notices.'} The same finding alerts every 15 minutes ${until}.`, ['gd_hb']);
+    const untilAccept = 'until dejima-guard accept takes the new state as the baseline (a closing expect window does that too)';
     const collect = [
       step(['gd-cycle', 'fw-devbox', 'p-guardshell'], 'ok', 'SSH in with the guard key',
         `${cfg.gd_place === 'other segment' ? 'Node rule 2b, the guard\'s one address' : 'Node rule 1, from the admin subnet'}. The key's forced command is dejima-guard-shell, no-pty.`, ['gd_place']),
@@ -316,24 +317,24 @@ export function scenarios(cfg, d) {
       ...collect,
       step(['gd-cycle', 'gd-baseline'], 'refused', 'A watched path changed', 'authorized_keys is a critical path: alerted at max, never ignored, never held by a window.', ['gd_expect']),
       alert('watched path changed', 'max', '"2 line(s) changed under paths this guard treats as its own footing… Treat what it has reported since as unverified." An edited file is two diff lines, old and new'),
-      after,
+      after(untilAccept),
     ]);
     add('guard', 'gd-listener', 'A scan: a new listener', [
       ...collect,
       step(['gd-cycle', 'gd-baseline'], win ? 'info' : 'refused', win ? 'Held: the window is open' : 'A new PORT line', win ? 'dejima-guard expect opened a window. The change is held; when the window closes it is accepted, with a low-priority "expected changes accepted" alert.' : 'A new listener or unit alerts at max. One that went away counts as an ordinary change, at high.', ['gd_expect']),
       win ? heartbeat : alert('new listener or unit', 'max'),
-      !win && after,
+      !win && after(untilAccept),
     ]);
     add('guard', 'gd-reach', 'A scan: reach fails', [
       ...collect,
       step(['gd-cycle', 'gd-baseline'], 'refused', 'Nothing changed, but reach did not pass', 'FAIL or INDETERMINATE: something answered, or no control worked. Inside a window too: containment is never held. Had anything changed as well, it would be one max alert, "changes and containment".', ['gd_expect']),
       alert('containment', 'high'),
-      after,
+      after('until reach passes again: a containment failure is not a baseline change, so accept does not clear it'),
     ]);
     add('guard', 'gd-down', 'The devbox stops answering', [
       step(['gd-cycle', 'fw-devbox'], 'refused', 'SSH times out', `After ssh_timeout = 10 s.${win ? ' Inside a window this is held, with no heartbeat either.' : ''}`, ['gd_expect']),
       win ? (hb ? step(['gd-cycle', 'lan-kuma'], 'warn', 'No heartbeat', 'Held is not clean: with the devbox gone for more than about 20 minutes, Kuma fires anyway.', ['gd_hb']) : null)
-        : alert('unreachable', 'max', '"dejima-guard could not collect from devbox. It may be down, off the network, or refusing this key"'),
+        : step(['gd-cycle', ...alertTo], 'ok', 'Alert: unreachable', `${ntfy ? 'At max priority' : 'alert_command gets the title and body on stdin, with no priority'}: "dejima-guard could not collect from devbox. It may be down, off the network, or refusing this key." ssh's own error goes to the guard's journal (or docker logs); dejima-guard report still shows the previous cycle.`, ['gd_alert'], { loud: true }),
       !win && hb && step(['gd-cycle', 'lan-kuma'], 'info', 'And no heartbeat', 'The alerting cycle sends none, so Kuma fires too, about 1200 s after the last ping.', ['gd_hb']),
     ]);
     add('guard', 'gd-pull', 'The devbox tries to reach the guard', [
@@ -351,12 +352,14 @@ export function scenarios(cfg, d) {
     const link = cfg.dn_ra !== 'unset';
     const netFlag = { default: '', named: ' --drop-domains', sealed: ' --require-sealed' }[cfg.dn_net];
     const hop = ['p-dn-api', ...nodeFw, 'p-dn-launch'];
-    const reach = cfg.dn_net === 'default' ? 'global approvals only' : 'only the model API and the task\'s own domains, since --drop-domains drops global approvals too';
+    const reach = cfg.dn_net === 'default' ? 'global approvals plus whatever the task names, but no project approvals'
+      : cfg.dn_net === 'named' ? 'only the model API and the task\'s own domains, since --drop-domains drops global approvals too'
+        : 'no name at all: a sealed launch only starts when nothing resolves, so a task naming any domain is refused';
     // A refusal from the filter comes after dejima has registered the session;
     // one from the harness or --require-sealed comes before.
-    const lateRefusal = refusedHere && /check 7|internal_domains names|not sealed/.test(dnRefused[0]);
-    const startedLink = !link ? '' : refusedHere && !lateRefusal ? ' The launch waits the full 20 s for a session that never registers, so the reply has no link.'
-      : refusedHere ? ' It links a session that dies at once.' : ' and "Open the session: <link>"';
+    const lateRefusal = refusedHere && /check 7|nothing permits|did not seal/.test(dnRefused[0]);
+    const startedLink = !link ? '' : refusedHere && !lateRefusal ? ' (after waiting the full 20 s for a session that never registers, so with no link)'
+      : refusedHere ? ' and a link to a session that dies at once' : ' and "Open the session: <link>"';
     const middle = front => [
       step(hop, 'ok', 'ssh to the launcher', `${dv ? 'Through an inbound SSH rule for the API host: rule 1 if it sits on an admin subnet. ' : ''}The key is from="<API>",command="darner-launch …",restrict. The job arrives as JSON on stdin.`, []),
       refusedHere

@@ -274,26 +274,26 @@ export function refusal(e) {
     if (e.cline_model === 'unset') return 'harness.cline: no model is configured. Cline has no default worth dejima choosing for you, and any id shipped here would go stale with the next Cline release. Set one: [harness.cline] model = claude-haiku-4-5-20251001. `cline auth` outside the sandbox lists what your backend offers.';
     if (e.backend === 'unset') return 'harness.cline: no [harness.cline] backend is set, so nothing says where the model is. There is deliberately no default.';
     if (!e.selfHosted) {
-      if (e.proxy === 'off') return 'harness.cline: the proxy is off for this backend, and cline has no way to reach a proxied backend without it. Only claude-code can run with the real credential mounted.';
-      if (e.transport === 'loopback') return 'harness.cline: [credentials] transport is loopback, and cline has no way to reach a proxied backend without the TLS terminator.';
+      if (e.proxy === 'off') return 'harness.cline: the proxy is off for this backend, and cline has no way to reach a proxied backend without the TLS terminator the proxy puts in front of it. Its credential lives in the providers.json dejima declines to mount, so there is nothing to fall back to - unlike claude-code, which mounts the real credential in that mode. Either turn the proxy back on with the default tls transport, or select a backend you serve yourself.';
+      if (e.transport === 'loopback') return 'harness.cline: [credentials] transport is loopback, and cline has no way to reach a proxied backend without the TLS terminator the proxy puts in front of it. Its credential lives in the providers.json dejima declines to mount, so there is nothing to fall back to - unlike claude-code, which mounts the real credential in that mode. Either turn the proxy back on with the default tls transport, or select a backend you serve yourself.';
     }
   }
   if (e.llmByName && !llmApproved(e))
-    return `harness.cline: refusing [backend.self-hosted] base_url ${e.base_url}: llm.example.lan is not host-local and not approved${e.isolated === 'on' ? '. An isolated launch reads global approvals only, so only dejima-allow --global would let it in; --domains does not count' : '. dejima-allow --global or --project would let it in'}.`;
+    return `harness.cline: refusing [backend.self-hosted] base_url ${e.base_url}. That backend needs no credential, so the endpoint has to be one that needs none: a model you serve. This is not host-local, so it would want a key inside the container. ... For one you serve, that means a loopback or RFC 1918 address, or a host you have allowlisted: dejima-allow --project <path> <host>`;
   if (e.sealed === 'on') {
-    if (e.firewall === 'off') return '--require-sealed refuses a launch with [core] firewall = off.';
-    if (e.harness === 'claude-code') return '--require-sealed: claude-code always permits platform.claude.com, so its resolver keeps an upstream.';
+    if (e.firewall === 'off') return '--require-sealed needs the egress firewall, and [core] firewall is off for this launch. Nothing would be bounding the session, so there is no sealed state for it to be in.';
+    if (e.harness === 'claude-code') return '--require-sealed cannot be met by the claude-code harness. It reaches its model by a name of its own, which every launch permits whatever else is dropped, so the resolver always has an upstream: platform.claude.com';
   }
   const p = permitted(e).map(x => x.name);
   if (e.firewall === 'on' && e.internal !== 'unset' && !p.includes(e.internal) && e.drop !== 'on')
-    return `[core] internal_domains names ${e.internal}, which is not permitted. An exemption never permits; the filter stops the launch.`;
+    return `ERROR: the internal-destination exemption names destinations nothing permits: ${e.internal}. [core] internal_domains and --internal-domain both exempt a name from the check that refuses an answer pointing inside a private network. Neither makes the name reachable - approve it as well: dejima-allow --global ${e.internal}        # or --project`;
   if (e.firewall === 'on') {
     const x = exempt(e);
     const bad = p.filter(n => PRIVATE.includes(n) && !x.has(n));
     if (bad.length)
       return `The egress control for this session stopped before it was ready. The filter said: check 7: these permitted names are answered with an address inside a private network, and this policy refuses such answers: ${bad.map(n => `${n} (open/strict)`).join(' ')}. That is this configuration disagreeing with itself - list them in [core] internal_domains (or --internal-domain, for one launch) if pointing inside is intended, or remove them.`;
   }
-  if (e.sealed === 'on' && p.length) return `--require-sealed: the session is not sealed. Still permitted: ${p.join(', ')}.`;
+  if (e.sealed === 'on' && p.length) return `--require-sealed: this session did not seal. Refusing to start it. A name is permitted, so the resolver has an upstream and the session can look names up: ${p.join(' ')}`;
   return null;
 }
 
