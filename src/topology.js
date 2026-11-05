@@ -12,7 +12,7 @@ export const SLUG = '-home-alice-proj';
 export function derive(cfg) {
   const e = effective(cfg);
   const on = cfg.on;
-  const refused = refusals(e);
+  const refused = on.dejima ? refusals(e) : [];
   const sealed = sealedState(e);
   const names = permitted(e);
   const edges = [];
@@ -172,17 +172,45 @@ export function derive(cfg) {
       : 'Below the container is your home directory, and dejima has nothing to say about it: a container escape lands here with your reach.',
       ['harness'], []) });
 
+  // ---- no dejima: the same agent, straight on the machine ----------------
+  const credPath = e.harness === 'cline' ? '~/.cline/data/settings/providers.json'
+    : e.backend === 'anthropic-api-key' ? '~/.claude.json' : '~/.claude/.credentials.json';
+  const bareHost = !on.dejima && box('dejima-host', 'host', 'your user account', [
+    box('host-files', 'group', 'everything it can read and write', [
+      leaf('f-project', 'file', '/home/alice/proj', { sub: 'the project',
+        info: info('The work, as before. And everything beside it: there is no mount list, because there is no mount.', []) }),
+      leaf('f-ssh', 'file', '~/.ssh/id_ed25519', { sub: 'your SSH key', tone: 'warn',
+        info: info('Readable, and usable: anything this key opens, the agent opens, and it can copy the key anywhere it can reach.', []) }),
+      leaf('f-cred', 'file', credPath, { sub: 'the real model credential', tone: 'warn',
+        info: info('The agent holds the real credential, not a placeholder. Nothing stands between it and any copy it sends.', ['harness']) }),
+      leaf('f-tokens', 'file', '~/.config/gh, ~/.aws, ~/.docker', { sub: 'every token you keep', tone: 'warn',
+        info: info('Forge, cloud, and registry tokens, at whatever scope you gave them.', []) }),
+      leaf('f-home', 'file', '~/.bashrc, ~/.config/systemd/user', { sub: 'what runs at your next login', tone: 'warn',
+        info: info('Writable, so a change here outlives the session and runs again as you.', []) }),
+    ]),
+    box('host-procs', 'group', 'processes', [
+      leaf('s-harness', 'proc', e.harness, { sub: 'as you, with your reach', tone: 'warn',
+        info: info('The same agent with the same autonomy, run straight on the machine: every command it runs is yours, with your files, your keys, and your network. Approving each action by hand is the check that is left, and an approved command can do more than it says.', ['harness']) }),
+      ...procs.filter(x => x && ['p-audit', 'p-guardshell'].includes(x.id)),
+    ]),
+  ], { sub: on.devbox ? 'the agent runs as you, on the devbox' : 'the agent runs as you',
+    alert: { title: 'No sandbox', lines: ['The agent runs as you: your files, your keys, your credentials, and your network.'] },
+    info: info(on.devbox ? 'Without dejima the agent runs on the devbox as you. The node firewall still bounds its LAN reach: that wall never depended on dejima.'
+      : 'Without dejima there is no container: the agent is a process of yours, with everything you can do.', ['harness']) });
+  const hostNode = on.dejima ? dejimaHost : bareHost;
+
   // ---- machines ---------------------------------------------------------
   const laptop = box('laptop', 'machine', 'your laptop', on.devbox
     ? [leaf('lt-ssh', 'proc', 'ssh client', { sub: 'admin subnet', info: info('You, administering the devbox over SSH: node rule 1.', []) })]
-    : [dejimaHost], { info: info(on.devbox ? 'dejima has moved to the devbox VM.' : 'dejima and its containers, on the machine you work on.', []) });
+    : [hostNode], { info: info(on.devbox ? (on.dejima ? 'dejima has moved to the devbox VM.' : 'The agent runs on the devbox VM.')
+      : (on.dejima ? 'dejima and its containers, on the machine you work on.' : 'The agent, on the machine you work on, as you.'), []) });
 
   const vms = [];
   if (on.devbox) vms.push(box('vm-devbox', 'vm', hostLabel, [
     leaf('fw-devbox', 'gate', 'node firewall', { sub: 'dejima-devbox-hardener', wall: true,
       info: info('The Proxmox security group on this VM\'s tap device. The guest cannot reach it, even as root.', ['dv_addr', 'dv_6b'],
         devboxRules(cfg).map(r => `${r.n}  ${r.dir} ${r.act} ${r.what}`)) }),
-    dejimaHost,
+    hostNode,
   ], { info: info('4 cores, x86-64-v3 (Cline needs AVX2), 16 GB, 128 GB. One person\'s work per devbox.', []) }));
 
   if (on.ci && cfg.ci_tiers !== 'privileged') vms.push(ciConfined(cfg));
@@ -284,6 +312,7 @@ export function derive(cfg) {
   const root = box('world', 'world', '', [internet, lan]);
   markOwners(root);
   // ---- static links -----------------------------------------------------
+  if (!on.dejima) return { root, edges, e, refused, sealed, names };
   link('f-project', 'm-project', 'rw', iso ? 'A Docker volume, mounted at /dejima/work, writable. Removed when the session closes.'
     : 'The project directory, bind-mounted at the same path, writable. .git/hooks is laid over read-only.', ['isolated']);
   link('f-share', 'm-share', 'rw', `${iso ? 'This session\'s fresh share' : 'This project\'s share'} on the host, bind-mounted at ~/shared, writable.`, ['isolated']);

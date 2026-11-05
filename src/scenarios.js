@@ -26,7 +26,44 @@ export function scenarios(cfg, d) {
   const approved = name => (e.isolated !== 'on' && e.allowed.includes(name)) || (e.drop !== 'on' && e.global.includes(name));
   const approvedBy = name => (e.isolated !== 'on' && e.allowed.includes(name) ? 'the project\'s approval' : 'a global approval');
 
+  // ---- no dejima: what the same agent can do as you -----------------------
+  if (!on.dejima) {
+    const lan = dv
+      ? step(['s-harness', 'fw-devbox'], 'refused', 'Go looking on the LAN', 'The node firewall still drops it: rules 7-9 on the Proxmox node never depended on dejima. The drop is logged to pve-firewall.log.', [])
+      : step(['s-harness', 'lan-nas'], 'warn', 'Go looking on the LAN', 'Your NAS, your router\'s admin page, anything your laptop can reach: the agent reaches it too, as you.', []);
+    add('dejima', 'bare-api', 'Ask the model', e.selfHosted ? [
+      step(['s-harness', ...(dv ? ['fw-devbox'] : ['lan-llm'])], dv ? 'refused' : 'warn', dv ? 'The node firewall drops it' : 'Straight to the model',
+        dv ? 'Rules 7-9 drop 10/8 on the node, sandbox or not. A LAN model needs its own pinhole.' : 'No credential to steal here, but nothing decides what else the agent reaches on the way.', ['harness']),
+    ] : [
+      step(['s-harness', 'f-cred'], 'warn', 'Read the real credential', 'It is a file in your home directory. The agent holds the real thing, not a placeholder.', ['harness']),
+      step(['s-harness', ...nodeFw, 'lan-router', 'net-api'], 'warn', 'Straight to the API', 'And to anywhere else, with the same credential: nothing on the way can tell your key from a copy.', []),
+    ]);
+    add('dejima', 'bare-keys', 'Read your SSH keys and tokens', [
+      step(['s-harness', 'f-ssh'], 'warn', 'Read ~/.ssh/id_ed25519', 'Anything the key opens, the agent opens: your servers, your forge, wherever you have put the public half.', []),
+      step(['s-harness', 'f-tokens'], 'warn', 'Read ~/.config', 'Forge, cloud, and registry tokens, at whatever scope you gave them.', []),
+      step(['s-harness', ...nodeFw, 'lan-router', 'net-unlisted'], 'warn', 'Send them anywhere', 'There is no allowlist: every name resolves and every address is reachable. A request to example.net leaves like any other.', []),
+    ]);
+    add('dejima', 'bare-lan', 'Reach the rest of your network', [lan,
+      dv && step(['s-harness', 'fw-devbox', 'lan-router', 'net-unlisted'], 'warn', 'The internet is still open', 'The devbox reaches public IPv4 by its outbound ACCEPT policy, sandbox or not.', [])]);
+    add('dejima', 'bare-push', 'Push to main', [
+      step(['s-harness', ...(on.ci || dv ? ['lan-forge'] : nodeFw.concat(['lan-router', 'net-github']))], 'warn', 'git push origin main',
+        'With your own key or token, so whatever you may push, it may. Nothing checks the branch or the host, and nothing blocks a merge.', []),
+      on.ci && step([...(cfg.ci_tiers !== 'privileged' ? ['r1-1', 'fw-ci-c'] : ['cip-runner', 'fw-ci-p']), 'lan-forge'], 'warn', 'The push queues CI', 'The CI hardener still bounds what that job can reach, sandbox or not.', []),
+    ]);
+    add('dejima', 'bare-persist', 'Leave something behind', [
+      step(['s-harness', 'f-home'], 'warn', 'Add a line to ~/.bashrc, or a user unit', 'It runs again as you at your next login, long after the session that wrote it.', []),
+      on.guard && step(['gd-cycle', 'fw-devbox', 'p-guardshell'], 'info', 'About every 15 minutes, the guard looks', 'Shell rc files and ~/.config/systemd/user are in the state it collects.', []),
+      on.guard && (cfg.gd_alert === 'ntfy_url'
+        ? step(['gd-cycle', 'lan-ntfy', 'ph-ntfy'], 'ok', 'It pages you', 'A new or changed file there is an unexplained change, alerted at high; a new enabled unit alerts at max. It repeats every cycle until you accept the new state.', ['gd_alert'], { loud: true })
+        : step(['gd-cycle'], 'ok', 'It pages you', 'alert_command gets the alert on stdin, every cycle until you accept the new state.', ['gd_alert'], { loud: true })),
+    ]);
+    add('dejima', 'bare-close', 'Close the session', [
+      step(['s-harness'], 'info', 'Nothing to tear down', 'There was no container, no filter, and no proxy. Everything it changed, everywhere it could reach, stays changed.', []),
+    ]);
+  }
+
   // ---- dejima -----------------------------------------------------------
+  if (on.dejima) {
   const selfCheck = d.sealed
     ? 'nftables loads and dnsmasq starts with no name to forward. The positive checks are skipped, since nothing should resolve; the negative ones confirm an unpermitted name and address are refused and IPv6 is refused. The ready record says resolver_upstream: false, and the banner shows S E A L E D.'
     : `nftables loads and dnsmasq starts with ${d.names.length} forwarded names. A self-check then resolves each one (a private answer for a name that is not exempt fails it), asserts IPv6 is refused and AAAA stripped${e.drop === 'on' ? '' : ', and that port 22 is refused unless granted'}.`;
@@ -198,6 +235,8 @@ export function scenarios(cfg, d) {
         : 'The project, ~/shared, writable mounts, the harness\'s per-project state, epitaphs, and the audit record.', [],
       { kept: ['f-project', 'f-share', 'f-rw', 'f-rwpp', 'f-stores'].filter(x => !(iso && x === 'f-project')) }),
   ]));
+
+  }
 
   // ---- remote access ----------------------------------------------------
   if (on.remote) {
