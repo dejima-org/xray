@@ -13,7 +13,8 @@
 <body>
 <header class="bar">
   <img class="wordmark" src="assets/brand/dejima-wordmark-darkmode.png" alt="dejima" width="2007" height="492">
-  <p class="bar-title">What runs where, and what stops what</p>
+  <p class="bar-title">Under the hood</p>
+  <a class="as-of" id="as-of" href="#sources" hidden></a>
   <button type="button" id="reset" class="quiet">Reset</button>
 </header>
 
@@ -44,6 +45,10 @@
 
   <aside class="side panel" aria-label="Scenarios and details">
     <div class="panel-body">
+      <section class="inspect">
+        <h2>Selected</h2>
+        <div id="inspector"></div>
+      </section>
       <section class="play">
         <h2>Make something happen</h2>
         <div id="scenarios"></div>
@@ -61,10 +66,7 @@
         </div>
         <div id="trace"></div>
       </section>
-      <section class="inspect">
-        <h2>Selected</h2>
-        <div id="inspector"></div>
-      </section>
+
     </div>
   </aside>
 

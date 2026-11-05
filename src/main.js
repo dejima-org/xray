@@ -1,7 +1,7 @@
 import { PROJECTS, KEYS, keyById, keyName, keyOpts, keyShown, defaults, normalise } from './config.js';
 import { derive } from './topology.js';
 import { scenarios } from './scenarios.js';
-import { Stage } from './render.js';
+import { Stage, selecting } from './render.js';
 
 const $ = s => document.querySelector(s);
 const el = (tag, cls, text) => { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; };
@@ -38,7 +38,7 @@ async function apply() {
   const wasPlaying = state.playing;
   stopRun();
   stage.clearTrails();
-  for (const c of ['lit', 'gone', 'kept']) stage.mark([], c);
+  for (const c of ['lit', 'gone', 'kept', 'paged']) stage.mark([], c);
   if (state.picked?.line) state.picked = null;
   const settled = stage.update(derived.root, derived.edges);
   if (state.fit) fit();
@@ -90,6 +90,7 @@ function renderRail() {
     }
     rail.append(sec);
   }
+  if (sourcesBox) rail.append(sourcesBox);
   rail.scrollTop = keep;
 }
 
@@ -184,10 +185,12 @@ function renderTrace() {
     const li = el('li', `step v-${st.verdict}`);
     if (i === state.step) li.classList.add('now');
     if (i < state.step) li.classList.add('done');
-    const b = el('button', 'step-head');
-    b.type = 'button';
+    const b = el('div', 'step-head');
     b.append(el('span', 'mark', { ok: '✓', refused: '✕', warn: '!', info: '·' }[st.verdict]), el('span', 'step-title', st.title));
-    li.addEventListener('click', ev => { if (!ev.target.closest('.chip')) play(s.id, i, false); });
+    li.tabIndex = 0;
+    li.setAttribute('role', 'button');
+    li.addEventListener('click', ev => { if (!ev.target.closest('.chip') && !selecting()) play(s.id, i, false); });
+    li.addEventListener('keydown', ev => { if (ev.target === li && ev.key === 'Enter') play(s.id, i, false); });
     li.append(b, el('p', 'step-detail', st.detail));
     if (st.keys.length) {
       const chips = el('div', 'chips');
@@ -215,7 +218,7 @@ async function play(id, from = 0, auto = true) {
   state.playing = auto;
   const s = current();
   stage.clearTrails();
-  stage.mark([], 'gone'); stage.mark([], 'kept'); stage.mark([], 'lit');
+  stage.mark([], 'gone'); stage.mark([], 'kept'); stage.mark([], 'lit'); stage.mark([], 'paged');
   const gone = [], kept = [];
   for (let i = 0; i < from; i++) {
     stage.travel(s.steps[i].path, s.steps[i].verdict, 1, { instant: true, step: s.steps[i] });
@@ -230,7 +233,8 @@ async function play(id, from = 0, auto = true) {
     const st = s.steps[i];
     stage.mark(st.path, 'lit');
     focus(st.path);
-    await stage.travel(st.path, st.verdict, state.speed, { title: st.title, step: st });
+    stage.mark(st.loud ? [st.path[st.path.length - 1]] : [], 'paged');
+    await stage.travel(st.path, st.verdict, state.speed, { title: st.title, step: st, loud: !!st.loud });
     if (run !== state.run) return;
     gone.push(...(st.gone || [])); kept.push(...(st.kept || []));
     stage.mark(gone, 'gone'); stage.mark(kept, 'kept');
@@ -261,7 +265,7 @@ document.addEventListener('keydown', ev => {
   if (!current() || ev.altKey || ev.ctrlKey || ev.metaKey) return;
   if (ev.key === 'ArrowRight') { ev.preventDefault(); stepTo(state.step + 1); }
   else if (ev.key === 'ArrowLeft') { ev.preventDefault(); stepTo(state.step - 1); }
-  else if (ev.key === ' ' && !ev.target.closest('button')) { ev.preventDefault(); togglePlay(); }
+  else if (ev.key === ' ' && !ev.target.closest('button, [role=button]')) { ev.preventDefault(); togglePlay(); }
 });
 
 // ---- inspector --------------------------------------------------------------
@@ -287,6 +291,7 @@ const LINK = { rw: 'Mounted, writable', ro: 'Mounted, read-only', socket: 'A uni
 
 function renderInspector() {
   const box = $('#inspector');
+  if (state.picked) $('.side .panel-body').scrollTop = 0;
   box.replaceChildren();
   const ln = state.picked?.line;
   if (ln) {
@@ -358,7 +363,8 @@ new ResizeObserver(() => { if (state.fit) fit(); else setScale(stage.scale); }).
 
 let drag = null;
 wrap.addEventListener('pointerdown', ev => {
-  if (ev.pointerType !== 'mouse' || ev.button !== 0 || ev.target.closest('button')) return;
+  // Only the background pans; dragging across a label selects its text.
+  if (ev.pointerType !== 'mouse' || ev.button !== 0 || ev.target.closest('button, .n, .caption')) return;
   drag = { x: ev.clientX, y: ev.clientY, l: wrap.scrollLeft, t: wrap.scrollTop };
   wrap.setPointerCapture(ev.pointerId);
   wrap.classList.add('dragging');
@@ -395,4 +401,32 @@ document.addEventListener('keydown', ev => {
   if (ev.key === 'Escape') { state.picked = null; stage.mark([], 'picked'); renderInspector(); }
 });
 
+// What the picture was checked against. Shown so that a picture that has
+// fallen behind says so, rather than passing for current.
+async function showSources() {
+  let src;
+  try { src = await (await fetch('sources.json')).json(); } catch { return; }
+  const label = (name, x) => x.release ? `${name} ${x.release}`
+    : x.version && x.ref !== 'main' ? `${name} ${x.version}, unreleased (${x.ref} at ${x.commit.slice(0, 7)})`
+      : `${name} ${x.ref} at ${x.commit.slice(0, 7)}${x.version ? `, VERSION ${x.version}` : ''}`;
+  const as = $('#as-of');
+  as.textContent = `as of ${label('dejima', src.dejima)}`;
+  as.hidden = false;
+  as.addEventListener('click', ev => { ev.preventDefault(); tab('rail'); document.getElementById('sources')?.scrollIntoView({ block: 'center' }); });
+  sourcesBox = el('section', 'sources');
+  sourcesBox.id = 'sources';
+  sourcesBox.append(el('h2', null, 'What this shows'),
+    el('p', 'key-effect', 'Checked against these versions. Anything newer may behave differently from what is drawn here.'));
+  const ul = el('ul');
+  for (const [name, x] of Object.entries(src)) {
+    const li = el('li', null, label(name, x));
+    li.append(el('span', 'key-where', ` checked ${x.verified}`));
+    ul.append(li);
+  }
+  sourcesBox.append(ul);
+  $('#rail-body').append(sourcesBox);
+}
+let sourcesBox = null;
+
 apply();
+showSources();

@@ -19,25 +19,24 @@ export const KEYS = [
   { id: 'harness', project: 'dejima', group: 'Agent', where: '~/.config/dejima/config', key: '[core] harness',
     opts: [{ v: 'claude-code' }, { v: 'cline' }], def: 'claude-code',
     effect: 'Which agent runs in the session container, and which guards it hosts. Required: there is no default.' },
-  { id: 'backend', project: 'dejima', group: 'Agent', where: '~/.config/dejima/config',
-    key: c => `[harness.${c.harness}] backend`,
-    opts: c => (c.harness === 'cline'
-      ? ['unset', 'anthropic', 'anthropic-api-key', 'openrouter', 'self-hosted']
-      : ['anthropic', 'anthropic-api-key']).map(v => ({ v })),
-    def: 'anthropic',
-    effect: 'Where the model is. Proxied backends keep the credential on the host; self-hosted has none to keep. cline has no default; claude-code gets anthropic written in once. openrouter is drawn with its credential_file set.' },
+  { id: 'backend', project: 'dejima', group: 'Agent', where: '~/.config/dejima/config', key: '[harness.claude-code] backend',
+    opts: [{ v: 'anthropic' }, { v: 'anthropic-api-key' }], def: 'anthropic', show: c => c.harness === 'claude-code',
+    effect: 'Where the model is. The credential stays on the host, with the proxy. Unset, dejima writes anthropic in once.' },
+  { id: 'cline_backend', project: 'dejima', group: 'Agent', where: '~/.config/dejima/config', key: '[harness.cline] backend',
+    opts: [{ v: 'unset' }, { v: 'anthropic' }, { v: 'anthropic-api-key' }, { v: 'openrouter' }, { v: 'self-hosted' }], def: 'unset', show: c => c.harness === 'cline',
+    effect: 'Where the model is. No default: unset, dejima refuses. Proxied backends keep the credential on the host; self-hosted has none to keep. openrouter is drawn with its credential_file set.' },
   { id: 'cline_model', project: 'dejima', group: 'Agent', where: '~/.config/dejima/config', key: '[harness.cline] model',
-    opts: c => [{ v: 'unset' }, { v: 'set', label: modelExample(c.backend) }], def: 'unset', show: c => c.harness === 'cline',
+    opts: c => [{ v: 'unset' }, { v: 'set', label: modelExample(backendOf(c)) }], def: 'unset', show: c => c.harness === 'cline',
     effect: 'Required. Without one, cline would quietly run a default of its own (claude-haiku-5-5 on Anthropic, gpt-4o on an OpenAI-compatible endpoint, as of cline 3.0.74), so dejima refuses instead.' },
   { id: 'base_url', project: 'dejima', group: 'Agent', where: '~/.config/dejima/config', key: '[backend.self-hosted] base_url',
     opts: [{ v: 'http://10.0.0.10:11434', label: 'an address' }, { v: 'http://llm.example.lan:11434', label: 'a name' }],
-    def: 'http://10.0.0.10:11434', show: c => c.backend === 'self-hosted',
+    def: 'http://10.0.0.10:11434', show: c => backendOf(c) === 'self-hosted',
     effect: 'An address is permitted as-is, no DNS. A name must already be approved, globally or by the project, and needs the resolver, so the session cannot seal.' },
   { id: 'proxy', project: 'dejima', group: 'Agent', where: '~/.config/dejima/config', key: '[credentials] proxy',
-    opts: onOff, def: 'on', show: c => c.backend !== 'self-hosted',
+    opts: onOff, def: 'on', show: c => backendOf(c) !== 'self-hosted',
     effect: 'off mounts the real credential file into the container. Only claude-code can run that way; cline refuses.' },
   { id: 'transport', project: 'dejima', group: 'Agent', where: '~/.config/dejima/config', key: '[credentials] transport',
-    opts: [{ v: 'tls' }, { v: 'loopback' }], def: 'tls', show: c => c.backend !== 'self-hosted' && c.proxy === 'on',
+    opts: [{ v: 'tls' }, { v: 'loopback' }], def: 'tls', show: c => backendOf(c) !== 'self-hosted' && c.proxy === 'on',
     effect: 'How the harness reaches the proxy socket: a TLS terminator on :443, or plain HTTP on :18300. cline needs tls.' },
 
   { id: 'isolated', project: 'dejima', group: 'Launch', where: 'dejima launch flag', key: '--isolated', flag: true,
@@ -162,6 +161,9 @@ export const KEYS = [
 
 // An id each backend would accept, for the picture to show. The Anthropic one
 // is what dejima's own refusal suggests; the hosted one is the docs' example.
+// Each harness has its own backend key; this is the one in force.
+export function backendOf(c) { return c.harness === 'cline' ? c.cline_backend : c.backend; }
+
 export function modelExample(backend) {
   return { openrouter: 'z-ai/glm-5.3', 'self-hosted': 'qwen3-coder' }[backend] || 'claude-haiku-4-5-20251001';
 }
@@ -180,8 +182,7 @@ export function defaults() {
 
 // Keep dependent values legal after a change, the way the UI offers them.
 export function normalise(c) {
-  const b = keyOpts(keyById.backend, c).map(o => o.v);
-  if (!b.includes(c.backend)) c.backend = 'anthropic';
+  if (!['anthropic', 'anthropic-api-key'].includes(c.backend)) c.backend = 'anthropic';
   if (c.on.guard) c.on.devbox = true;
   if (!c.on.remote) c.dn_ra = 'unset';
   return c;
@@ -190,7 +191,7 @@ export function normalise(c) {
 // What dejima actually runs with once flags have had their say.
 // Each override carries the reason a launch would print.
 export function effective(c) {
-  const e = { ...c, overrides: {} };
+  const e = { ...c, backend: backendOf(c), overrides: {} };
   const over = (id, v, why) => { if (e[id] !== v) { e.overrides[id] = why; e[id] = v; } };
   if (c.sealed === 'on') e.drop = 'on';
   if (c.isolated === 'on') {
@@ -270,29 +271,29 @@ export function refusal(e) {
   if (e.pushes && e.forge === 'none')
     return `[core] workflow = ${e.workflow} pushes, and [core] forge = none gives it nowhere to push.`;
   if (e.harness === 'cline') {
-    if (e.cline_model === 'unset') return `harness.cline: no model is configured. Cline has no default worth dejima choosing for you, and any id shipped here would go stale with the next Cline release. Set one: [harness.cline] model = ${e.backend === 'anthropic' || e.backend === 'anthropic-api-key' || e.backend === 'unset' ? 'claude-haiku-4-5-20251001' : modelExample(e.backend)}. \`cline auth\` outside the sandbox lists what your backend offers.`;
+    if (e.cline_model === 'unset') return 'harness.cline: no model is configured. Cline has no default worth dejima choosing for you, and any id shipped here would go stale with the next Cline release. Set one: [harness.cline] model = claude-haiku-4-5-20251001. `cline auth` outside the sandbox lists what your backend offers.';
     if (e.backend === 'unset') return 'harness.cline: no [harness.cline] backend is set, so nothing says where the model is. There is deliberately no default.';
     if (!e.selfHosted) {
-      if (e.proxy === 'off') return 'harness.cline: the proxy is off for this backend, and cline has no way to reach a proxied backend without it. Only claude-code can run with the real credential mounted.';
-      if (e.transport === 'loopback') return 'harness.cline: [credentials] transport is loopback, and cline has no way to reach a proxied backend without the TLS terminator.';
+      if (e.proxy === 'off') return 'harness.cline: the proxy is off for this backend, and cline has no way to reach a proxied backend without the TLS terminator the proxy puts in front of it. Its credential lives in the providers.json dejima declines to mount, so there is nothing to fall back to - unlike claude-code, which mounts the real credential in that mode. Either turn the proxy back on with the default tls transport, or select a backend you serve yourself.';
+      if (e.transport === 'loopback') return 'harness.cline: [credentials] transport is loopback, and cline has no way to reach a proxied backend without the TLS terminator the proxy puts in front of it. Its credential lives in the providers.json dejima declines to mount, so there is nothing to fall back to - unlike claude-code, which mounts the real credential in that mode. Either turn the proxy back on with the default tls transport, or select a backend you serve yourself.';
     }
   }
   if (e.llmByName && !llmApproved(e))
-    return `harness.cline: refusing [backend.self-hosted] base_url ${e.base_url}: llm.example.lan is not host-local and not approved${e.isolated === 'on' ? ' (an isolated launch reads global approvals only)' : ''}. dejima-allow --global or --project would let it in.`;
+    return `harness.cline: refusing [backend.self-hosted] base_url ${e.base_url}. That backend needs no credential, so the endpoint has to be one that needs none: a model you serve. This is not host-local, so it would want a key inside the container. ... For one you serve, that means a loopback or RFC 1918 address, or a host you have allowlisted: dejima-allow --project <path> <host>`;
   if (e.sealed === 'on') {
-    if (e.firewall === 'off') return '--require-sealed refuses a launch with [core] firewall = off.';
-    if (e.harness === 'claude-code') return '--require-sealed: claude-code always permits platform.claude.com, so its resolver keeps an upstream.';
+    if (e.firewall === 'off') return '--require-sealed needs the egress firewall, and [core] firewall is off for this launch. Nothing would be bounding the session, so there is no sealed state for it to be in.';
+    if (e.harness === 'claude-code') return '--require-sealed cannot be met by the claude-code harness. It reaches its model by a name of its own, which every launch permits whatever else is dropped, so the resolver always has an upstream: platform.claude.com';
   }
   const p = permitted(e).map(x => x.name);
   if (e.firewall === 'on' && e.internal !== 'unset' && !p.includes(e.internal) && e.drop !== 'on')
-    return `[core] internal_domains names ${e.internal}, which is not permitted. An exemption never permits; the filter stops the launch.`;
+    return `The egress control for this session stopped before it was ready, so there is no filter for the sandbox to run behind. Refusing to start it. The filter said: ERROR: the internal-destination exemption names destinations nothing permits: ${e.internal} [core] internal_domains and --internal-domain both exempt a name from the check that refuses an answer pointing inside a private network. Neither makes the name reachable - approve it as well: dejima-allow --global ${e.internal}        # or --project An isolated launch has no approval store, so there it is a line in the file given to --domains.`;
   if (e.firewall === 'on') {
     const x = exempt(e);
     const bad = p.filter(n => PRIVATE.includes(n) && !x.has(n));
     if (bad.length)
       return `The egress control for this session stopped before it was ready. The filter said: check 7: these permitted names are answered with an address inside a private network, and this policy refuses such answers: ${bad.map(n => `${n} (open/strict)`).join(' ')}. That is this configuration disagreeing with itself - list them in [core] internal_domains (or --internal-domain, for one launch) if pointing inside is intended, or remove them.`;
   }
-  if (e.sealed === 'on' && p.length) return `--require-sealed: the session is not sealed. Still permitted: ${p.join(', ')}.`;
+  if (e.sealed === 'on' && p.length) return `--require-sealed: this session did not seal. Refusing to start it. A name is permitted, so the resolver has an upstream and the session can look names up: ${p.map(n => `${n}  (open class)`).join(' ')}. Each was named by this launch - the project's approved domains, --domains, the harness's model API, the log endpoint. A model reached by an address needs no name; --no-log drops the log endpoint.`;
   return null;
 }
 

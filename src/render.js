@@ -97,11 +97,10 @@ export class Stage {
     el.className = 'n box';
     el.dataset.id = node.id;
     el.dataset.box = '1';
-    const head = document.createElement('button');
+    const head = pressable('div');
     head.className = 'n-head';
-    head.type = 'button';
     head.append(span('n-label'), span('n-sub'));
-    head.addEventListener('click', ev => { ev.stopPropagation(); this.onPick(node.id); });
+    head.addEventListener('click', ev => { ev.stopPropagation(); if (!selecting()) this.onPick(node.id); });
     const kids = document.createElement('div');
     kids.className = 'n-kids';
     el.append(head, kids);
@@ -109,13 +108,12 @@ export class Stage {
   }
 
   makeLeaf(node) {
-    const el = document.createElement('button');
-    el.type = 'button';
+    const el = pressable('div');
     el.className = 'n leaf';
     el.dataset.id = node.id;
     el.dataset.box = '0';
     el.append(span('n-label'), span('n-sub'));
-    el.addEventListener('click', ev => { ev.stopPropagation(); this.onPick(node.id); });
+    el.addEventListener('click', ev => { ev.stopPropagation(); if (!selecting()) this.onPick(node.id); });
     return el;
   }
 
@@ -218,12 +216,12 @@ export class Stage {
   // Draw one step: its line fades in whole, arrowed towards where it ends,
   // with the step's title beside the end. `instant` draws it already dimmed,
   // for steps passed. Resolves once it has been on screen long enough to read.
-  travel(ids, verdict, speed = 1, { instant = false, title = '', step = null } = {}) {
+  travel(ids, verdict, speed = 1, { instant = false, title = '', step = null, loud = false } = {}) {
     const pts = ids.map(id => this.point(id)).filter(Boolean);
     if (!pts.length) return Promise.resolve();
     for (const t of this.trails.children) t.classList.add('old');
     const g = document.createElementNS(SVG, 'g');
-    g.setAttribute('class', `step-mark v-${verdict}`);
+    g.setAttribute('class', `step-mark v-${verdict}${loud ? ' loud' : ''}`);
     this.trails.append(g);
     let path = null;
     let end = pts[pts.length - 1];
@@ -240,18 +238,26 @@ export class Stage {
     const b = this.burst(end, verdict);
     b.addEventListener('click', ev => { ev.stopPropagation(); pick(); });
     g.append(b);
+    // A page: rings that keep going out from where it lands.
+    if (loud && !instant) for (let i = 0; i < 3; i++) {
+      const ring = document.createElementNS(SVG, 'circle');
+      ring.setAttribute('cx', end[0]); ring.setAttribute('cy', end[1]); ring.setAttribute('r', 14);
+      ring.setAttribute('class', 'page-ring');
+      ring.style.animationDelay = `${i * 0.45}s`;
+      g.append(ring);
+    }
     if (instant) { g.classList.add('old'); return Promise.resolve(); }
-    if (title) this.captionAt(title, verdict, path, end);
+    if (title) this.captionAt(title, verdict, path, end, loud);
     if (!reduced()) g.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 380, easing: 'ease-out' });
     return wait(900 / speed);
   }
 
   // The caption sits beside the end of the line, on whichever side of it
   // covers least of the picture, and stays where it was put.
-  captionAt(title, verdict, path, end) {
+  captionAt(title, verdict, path, end, loud = false) {
     this.caption?.remove();
     const el = document.createElement('div');
-    el.className = `caption v-${verdict}`;
+    el.className = `caption v-${verdict}${loud ? ' loud' : ''}`;
     el.textContent = title;
     el.setAttribute('aria-hidden', 'true');
     this.world.append(el);
@@ -321,6 +327,20 @@ export class Stage {
     return { x0: Math.min(...xs), y0: Math.min(...ys), x1: Math.max(...xs), y1: Math.max(...ys) };
   }
 }
+
+// Something that acts like a button but keeps its text selectable, which a
+// <button> does not: Enter and Space press it, and a click that ends a text
+// selection is not a press.
+function pressable(tag) {
+  const el = document.createElement(tag);
+  el.setAttribute('role', 'button');
+  el.tabIndex = 0;
+  el.addEventListener('keydown', ev => {
+    if (ev.target === el && (ev.key === 'Enter' || ev.key === ' ')) { ev.preventDefault(); el.click(); }
+  });
+  return el;
+}
+export const selecting = () => !!window.getSelection()?.toString();
 
 function span(c) { const s = document.createElement('span'); s.className = c; return s; }
 function wait(ms) { return new Promise(r => setTimeout(r, ms)); }

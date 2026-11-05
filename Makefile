@@ -1,7 +1,7 @@
 # The files that make up the site. Everything else stays out of what gets published.
-SITE := index.html styles.css src assets
+SITE := index.html styles.css sources.json src assets
 
-.PHONY: build check test serve clean
+.PHONY: build check test serve clean sources unverified
 
 build:
 	rm -rf public
@@ -21,6 +21,17 @@ check: build
 
 test:
 	node --test test/*.test.mjs
+
+# Which pins in sources.json have fallen behind their projects. Needs read
+# access to the forge; XRAY_FORGE overrides where it reads from.
+sources:
+	node tools/check-sources.mjs
+
+# The rows of the verdict matrix nobody has checked against the code yet:
+# everything not in verified/matrix.json. See docs/keeping-current.md.
+unverified:
+	node tools/matrix.mjs --diff verified/matrix.json > unverified.md
+	@echo "wrote unverified.md"
 
 serve: build
 	python3 -m http.server -d public 8000

@@ -36,7 +36,7 @@ export function scenarios(cfg, d) {
       ['isolated', 'allowed', 'global']),
     ...(launchBlocked || [
       e.proxied && step(['p-launcher', 'p-proxy'], 'info', 'Start the credential proxy',
-        `A host process on a fresh unix socket, holding the ${e.backend} credential. The container will only ever see a placeholder.`, ['proxy', 'backend']),
+        `A host process on a fresh unix socket, holding the ${e.backend} credential. The container will only ever see a placeholder.`, ['proxy', 'backend', 'cline_backend']),
       ...notes(e).map(n => step(['p-launcher'], 'warn', 'The launch carries on', n, ['internal', 'firewall'])),
       step(['p-launcher', 'docker'], 'info', 'Create the network', 'dejima-run-<run id>: a user-defined bridge, one per launch.', []),
       step(['p-launcher', 'c-filter'], fw ? 'ok' : 'warn', fw ? 'Start the filter and check it' : 'Start the filter, with nothing in it',
@@ -60,11 +60,11 @@ export function scenarios(cfg, d) {
           'An IPv4 base_url goes straight into the literal set. No DNS, so no answer to check, and internal_domains does not apply.', ['base_url']),
     step(['s-harness', 'g-nft', 'bridge', ...(dv ? ['fw-devbox'] : ['lan-llm'])], dv ? 'refused' : 'ok', dv ? 'The node firewall drops it' : 'Straight to the model',
       dv ? 'dejima allows it, but the devbox may only reach the forge and the resolver on the LAN. Rules 7-9 drop 10/8. A LAN model needs its own pinhole above the DROPs.'
-        : 'No credential exists, so there is no proxy and no placeholder. The request crosses nftables like any other permitted connection.', ['backend']),
+        : 'No credential exists, so there is no proxy and no placeholder. The request crosses nftables like any other permitted connection.', ['backend', 'cline_backend']),
   ]) : e.proxy === 'off' ? [
     step(['s-harness', 'm-cred'], 'warn', 'Read the real credential', 'With [credentials] proxy = off, the credential file is mounted into the container. The agent can read it, and send it anywhere it can reach.', ['proxy']),
     fw && step(['s-harness', 's-dns'], 'ok', `Look up ${e.apiHost}`, 'The API name joins the open list when the proxy is off.', ['proxy']),
-    step(['s-harness', ...(fw ? ['g-nft'] : []), ...out('net-api')], 'warn', 'Straight to the API, with the real key', 'Through the filter, through the host, out. Nothing on the way can tell your key from a copy.', ['proxy']),
+    step(['s-harness', ...(fw ? ['g-nft'] : []), ...out('net-api')], 'warn', 'Straight to the API, with the real key', fw ? 'Through the filter, through the host, out. Nothing on the way can tell your key from a copy.' : 'No filter, so straight through the host and out. Nothing on the way can tell your key from a copy.', ['proxy']),
   ] : [
     step(['s-harness', 's-term'], 'ok', e.transport === 'tls' ? `${e.apiHost} resolves to 127.0.0.1` : 'ANTHROPIC_BASE_URL → 127.0.0.1:18300',
       e.transport === 'tls' ? '/etc/hosts maps it to loopback, so no DNS query is made. A terminator with a cert dejima made for this session ends TLS there.'
@@ -72,9 +72,9 @@ export function scenarios(cfg, d) {
     step(['s-term', 'm-sock', 'p-proxy'], 'ok', 'Down the socket, not the network',
       'A unix socket in a read-only mounted directory. API traffic never crosses nftables, and the API name is not on the allowlist: resolving it by DNS returns nothing.', ['proxy']),
     step(['p-proxy', 'f-cred'], 'info', 'Swap in the real credential',
-      e.backend === 'anthropic' ? 'The proxy replaces the placeholder Bearer token with your OAuth token, refreshing it when it expires.' : 'The proxy replaces the placeholder key with the real one.', ['backend']),
+      e.backend === 'anthropic' ? 'The proxy replaces the placeholder Bearer token with your OAuth token, refreshing it when it expires.' : 'The proxy replaces the placeholder key with the real one.', ['backend', 'cline_backend']),
     step(['p-proxy', ...nodeFw, 'lan-router', 'net-api'], 'ok', 'Upstream, from the host',
-      dv ? 'The proxy runs on the devbox, outside the container. The node allows public IPv4 by its outbound policy.' : 'The proxy connects from your laptop\'s own network.', ['backend']),
+      dv ? 'The proxy runs on the devbox, outside the container. The node allows public IPv4 by its outbound policy.' : 'The proxy connects from your laptop\'s own network.', ['backend', 'cline_backend']),
   ]));
 
   // Install a package
@@ -93,7 +93,7 @@ export function scenarios(cfg, d) {
   // A declared name
   const pypiOk = approved('pypi.org');
   add('dejima', 'pypi', 'Reach a name the project declares', guard(!fw ? [
-    step(['s-harness', ...out('net-pypi')], 'warn', 'No filter at all', 'Everything is reachable with the firewall off.', ['firewall']),
+    step(['s-harness', ...out('net-pypi')], 'warn', 'No filter at all', dv ? 'With the firewall off, everything public is reachable; the node still drops the private ranges.' : 'Everything is reachable with the firewall off.', ['firewall']),
   ] : [
     step(['s-harness', 's-dns'], pypiOk ? 'ok' : 'refused', 'Look up pypi.org',
       pypiOk ? `Permitted by ${approvedBy('pypi.org')}, so it is forwarded.`
@@ -156,7 +156,7 @@ export function scenarios(cfg, d) {
     e.blocked.length
       ? step(['s-harness', 's-guards'], 'refused', 'git push origin main', `Refused: main and master are blocked branches.${cline ? ' Under cline this is only the git wrapper on PATH: /usr/bin/git steps around it and no hook catches that, so only the forge\'s own branch protection would refuse main.' : ''}`, ['workflow'])
       : step(['s-harness', 's-guards', 'g-nft', ...out('net-github')], 'warn', 'git push origin main',
-        'Allowed. local-only blocks no branches because it never pushes, and --allow-github-push gives it a push host anyway, so the guard has no branch to refuse. Only GitHub\'s own branch protection stands in the way.', ['workflow', 'ghpush']),
+        `The guard allows it: local-only blocks no branches because it never pushes, and --allow-github-push gives it a push host anyway. ${e.ssh_key !== 'unset' ? 'With a session key loaded, only GitHub\'s own branch protection stands in the way.' : 'Here GitHub refuses the login, since local-only forwards no agent and no ssh_key is set; with a session key, only its branch protection would stand in the way.'}`, ['workflow', 'ghpush', 'ssh_key']),
     step(['s-harness', 's-guards'], 'ok', 'git push origin agent/fix-tests', `To ${e.pushHosts.join(' or ')}, a push host. Allowed.`, ['workflow', 'forge', 'ghpush']),
     toForge,
     mergeStep,
@@ -172,7 +172,11 @@ export function scenarios(cfg, d) {
       : step(['dejima-host', 'lan-nas'], 'warn', 'Go looking on the LAN', 'On a laptop, nothing below the container bounds it. It has your user, your home directory, and your LAN.', []),
     dv && step(['fw-devbox', 'pve-log'], 'info', 'The drop is logged', 'Written by the hypervisor. A quiet log going loud is the strongest signal you get. Nothing in either repo reads it for you.', []),
     dv && step(['dejima-host', 'fw-devbox', 'lan-router', 'net-unlisted'], 'warn', 'The internet is still open', 'The devbox reaches public IPv4 on any port, by its outbound ACCEPT policy. The wall is around your LAN, not around the internet.', []),
-    on.guard && step(['gd-cycle', ...nodeFw, 'p-guardshell'], 'info', 'About every 15 minutes, the guard looks', 'A changed critical path, a new unit or listener, or changes alongside a failed reach alert at max; other changes, or a failed reach alone, at high. Unless the payload thought to forge the state.', []),
+    on.guard && step(['gd-cycle', ...nodeFw, 'p-guardshell'], 'info', 'About every 15 minutes, the guard looks', 'It collects the devbox\'s state over SSH and diffs it against the baseline it keeps on its own disk, where root on the devbox cannot reach.', []),
+    on.guard && (cfg.gd_alert === 'ntfy_url'
+      ? step(['gd-cycle', 'lan-ntfy', 'ph-ntfy'], 'ok', 'It pages you', 'If the payload left anything the guard watches, the next cycle alerts at max priority: a changed critical path, a new unit or listener, or changes alongside a failed reach. Any other change alerts at high. It keeps alerting every cycle until you accept the new state. What it cannot catch is a payload that forges the state it reports.', ['gd_alert'], { loud: true })
+      : step(['gd-cycle'], 'ok', 'It pages you', 'alert_command runs with the alert\'s title and body on stdin, every cycle until you accept the new state. It gets every alert, at any priority, and is never told which; the loudest are a changed critical path, a new unit or listener, or changes alongside a failed reach. What it cannot catch is a payload that forges the state it reports.', ['gd_alert'], { loud: true })),
+    on.guard && cfg.gd_hb !== 'unset' && step(['gd-cycle', 'lan-kuma'], 'ok', 'And Kuma pages you too', 'An alerting cycle sends no heartbeat, so about 1200 s after the last one Uptime Kuma fires on its own. So it does for a guard that dies, or a payload that cuts the devbox off from it: silence pages you as well.', ['gd_hb'], { loud: true }),
   ]));
 
   // Close
@@ -293,8 +297,9 @@ export function scenarios(cfg, d) {
     const ntfy = cfg.gd_alert === 'ntfy_url';
     const alertTo = ntfy ? ['lan-ntfy', 'ph-ntfy'] : ['gd-cycle'];
     const alert = (title, pri, body) => step(['gd-cycle', ...alertTo], 'ok', `Alert: ${title}`,
-      `${ntfy ? `At ${pri} priority` : 'alert_command gets the title and body on stdin, with no priority'}${body ? `: ${body}.` : '.'} No paths or unit names in it; the detail stays in dejima-guard report, on the guard.`, ['gd_alert']);
-    const after = step(['gd-cycle'], 'info', 'No heartbeat, and it repeats', `A cycle that alerted sends no heartbeat${hb ? '' : ' (and there is no heartbeat_url anyway)'}, and neither does one whose alert failed to send, so a broken alert route still trips the dead-man's switch. check never moves the baseline, so the same finding alerts every 15 minutes until dejima-guard accept.`, ['gd_hb']);
+      `${ntfy ? `At ${pri} priority` : 'alert_command gets the title and body on stdin, with no priority'}${body ? `: ${body}.` : '.'} No paths or unit names in it; the detail stays in dejima-guard report, on the guard.`, ['gd_alert'], { loud: pri !== 'low' });
+    const after = until => step(['gd-cycle'], 'info', 'No heartbeat, and it repeats', `${hb ? 'A cycle that alerted sends no heartbeat, and neither does one whose alert failed to send, so a broken alert route still trips the dead-man\'s switch.' : 'There is no heartbeat_url, so there is no dead-man\'s switch: if the alert fails to send, nothing notices.'} The same finding alerts every 15 minutes ${until}.`, ['gd_hb']);
+    const untilAccept = 'until dejima-guard accept takes the new state as the baseline (a closing expect window does that too)';
     const collect = [
       step(['gd-cycle', 'fw-devbox', 'p-guardshell'], 'ok', 'SSH in with the guard key',
         `${cfg.gd_place === 'other segment' ? 'Node rule 2b, the guard\'s one address' : 'Node rule 1, from the admin subnet'}. The key's forced command is dejima-guard-shell, no-pty.`, ['gd_place']),
@@ -312,24 +317,24 @@ export function scenarios(cfg, d) {
       ...collect,
       step(['gd-cycle', 'gd-baseline'], 'refused', 'A watched path changed', 'authorized_keys is a critical path: alerted at max, never ignored, never held by a window.', ['gd_expect']),
       alert('watched path changed', 'max', '"2 line(s) changed under paths this guard treats as its own footing… Treat what it has reported since as unverified." An edited file is two diff lines, old and new'),
-      after,
+      after('until dejima-guard accept takes the new state as the baseline. A closing expect window does not: it keeps critical paths at their old baseline'),
     ]);
     add('guard', 'gd-listener', 'A scan: a new listener', [
       ...collect,
       step(['gd-cycle', 'gd-baseline'], win ? 'info' : 'refused', win ? 'Held: the window is open' : 'A new PORT line', win ? 'dejima-guard expect opened a window. The change is held; when the window closes it is accepted, with a low-priority "expected changes accepted" alert.' : 'A new listener or unit alerts at max. One that went away counts as an ordinary change, at high.', ['gd_expect']),
       win ? heartbeat : alert('new listener or unit', 'max'),
-      !win && after,
+      !win && after(untilAccept),
     ]);
     add('guard', 'gd-reach', 'A scan: reach fails', [
       ...collect,
       step(['gd-cycle', 'gd-baseline'], 'refused', 'Nothing changed, but reach did not pass', 'FAIL or INDETERMINATE: something answered, or no control worked. Inside a window too: containment is never held. Had anything changed as well, it would be one max alert, "changes and containment".', ['gd_expect']),
       alert('containment', 'high'),
-      after,
+      after('until reach passes again: a containment failure is not a baseline change, so accept does not clear it'),
     ]);
     add('guard', 'gd-down', 'The devbox stops answering', [
       step(['gd-cycle', 'fw-devbox'], 'refused', 'SSH times out', `After ssh_timeout = 10 s.${win ? ' Inside a window this is held, with no heartbeat either.' : ''}`, ['gd_expect']),
       win ? (hb ? step(['gd-cycle', 'lan-kuma'], 'warn', 'No heartbeat', 'Held is not clean: with the devbox gone for more than about 20 minutes, Kuma fires anyway.', ['gd_hb']) : null)
-        : alert('unreachable', 'max', '"dejima-guard could not collect from devbox. It may be down, off the network, or refusing this key"'),
+        : step(['gd-cycle', ...alertTo], 'ok', 'Alert: unreachable', `${ntfy ? 'At max priority' : 'alert_command gets the title and body on stdin, with no priority'}: "dejima-guard could not collect from <devbox_host>. It may be down, off the network, or refusing this key." ssh's own error goes to the guard's journal (or docker logs); dejima-guard report still shows the previous cycle.`, ['gd_alert'], { loud: true }),
       !win && hb && step(['gd-cycle', 'lan-kuma'], 'info', 'And no heartbeat', 'The alerting cycle sends none, so Kuma fires too, about 1200 s after the last ping.', ['gd_hb']),
     ]);
     add('guard', 'gd-pull', 'The devbox tries to reach the guard', [
@@ -347,12 +352,14 @@ export function scenarios(cfg, d) {
     const link = cfg.dn_ra !== 'unset';
     const netFlag = { default: '', named: ' --drop-domains', sealed: ' --require-sealed' }[cfg.dn_net];
     const hop = ['p-dn-api', ...nodeFw, 'p-dn-launch'];
-    const reach = cfg.dn_net === 'default' ? 'global approvals only' : 'only the model API and the task\'s own domains, since --drop-domains drops global approvals too';
+    const reach = cfg.dn_net === 'default' ? 'global approvals plus whatever the task names, but no project approvals'
+      : cfg.dn_net === 'named' ? 'only the model API and the task\'s own domains, since --drop-domains drops global approvals too'
+        : 'no name at all: a sealed launch only starts when nothing resolves, so a task naming any domain is refused';
     // A refusal from the filter comes after dejima has registered the session;
     // one from the harness or --require-sealed comes before.
-    const lateRefusal = refusedHere && /check 7|internal_domains names|not sealed/.test(dnRefused[0]);
-    const startedLink = !link ? '' : refusedHere && !lateRefusal ? ' The launch waits the full 20 s for a session that never registers, so the reply has no link.'
-      : refusedHere ? ' It links a session that dies at once.' : ' and "Open the session: <link>"';
+    const lateRefusal = refusedHere && /check 7|nothing permits|did not seal/.test(dnRefused[0]);
+    const startedLink = !link ? '' : refusedHere && !lateRefusal ? ' (after waiting the full 20 s for a session that never registers, so with no link)'
+      : refusedHere ? ' and a link to a session that dies at once' : ' and "Open the session: <link>"';
     const middle = front => [
       step(hop, 'ok', 'ssh to the launcher', `${dv ? 'Through an inbound SSH rule for the API host: rule 1 if it sits on an admin subnet. ' : ''}The key is from="<API>",command="darner-launch …",restrict. The job arrives as JSON on stdin.`, []),
       refusedHere
