@@ -293,8 +293,8 @@ export function scenarios(cfg, d) {
     const ntfy = cfg.gd_alert === 'ntfy_url';
     const alertTo = ntfy ? ['lan-ntfy', 'ph-ntfy'] : ['gd-cycle'];
     const alert = (title, pri, body) => step(['gd-cycle', ...alertTo], 'ok', `Alert: ${title}`,
-      `${ntfy ? `At ${pri} priority` : 'alert_command gets the title and body on stdin, with no priority'}${body ? `: ${body}` : '.'} No paths or unit names in it; the detail stays in dejima-guard report, on the guard.`, ['gd_alert']);
-    const after = step(['gd-cycle'], 'info', 'No heartbeat, and it repeats', `A cycle that alerted sends no heartbeat${hb ? '' : ' (and there is no heartbeat_url anyway)'}. check never moves the baseline, so the same finding alerts every 15 minutes until dejima-guard accept.`, ['gd_hb']);
+      `${ntfy ? `At ${pri} priority` : 'alert_command gets the title and body on stdin, with no priority'}${body ? `: ${body}.` : '.'} No paths or unit names in it; the detail stays in dejima-guard report, on the guard.`, ['gd_alert']);
+    const after = step(['gd-cycle'], 'info', 'No heartbeat, and it repeats', `A cycle that alerted sends no heartbeat${hb ? '' : ' (and there is no heartbeat_url anyway)'}, and neither does one whose alert failed to send, so a broken alert route still trips the dead-man's switch. check never moves the baseline, so the same finding alerts every 15 minutes until dejima-guard accept.`, ['gd_hb']);
     const collect = [
       step(['gd-cycle', 'fw-devbox', 'p-guardshell'], 'ok', 'SSH in with the guard key',
         `${cfg.gd_place === 'other segment' ? 'Node rule 2b, the guard\'s one address' : 'Node rule 1, from the admin subnet'}. The key's forced command is dejima-guard-shell, no-pty.`, ['gd_place']),
@@ -316,20 +316,21 @@ export function scenarios(cfg, d) {
     ]);
     add('guard', 'gd-listener', 'A scan: a new listener', [
       ...collect,
-      step(['gd-cycle', 'gd-baseline'], win ? 'info' : 'refused', win ? 'Held: the window is open' : 'A new PORT line', win ? 'dejima-guard expect opened a window. The change is held, and accepted when it closes.' : 'A new listener or unit alerts at max. One that went away counts as an ordinary change, at high.', ['gd_expect']),
+      step(['gd-cycle', 'gd-baseline'], win ? 'info' : 'refused', win ? 'Held: the window is open' : 'A new PORT line', win ? 'dejima-guard expect opened a window. The change is held; when the window closes it is accepted, with a low-priority "expected changes accepted" alert.' : 'A new listener or unit alerts at max. One that went away counts as an ordinary change, at high.', ['gd_expect']),
       win ? heartbeat : alert('new listener or unit', 'max'),
       !win && after,
     ]);
     add('guard', 'gd-reach', 'A scan: reach fails', [
       ...collect,
-      step(['gd-cycle', 'gd-baseline'], 'refused', 'Nothing changed, but reach did not pass', 'FAIL or INDETERMINATE: something answered, or no control worked. Inside a window too: containment is never held.', ['gd_expect']),
+      step(['gd-cycle', 'gd-baseline'], 'refused', 'Nothing changed, but reach did not pass', 'FAIL or INDETERMINATE: something answered, or no control worked. Inside a window too: containment is never held. Had anything changed as well, it would be one max alert, "changes and containment".', ['gd_expect']),
       alert('containment', 'high'),
       after,
     ]);
     add('guard', 'gd-down', 'The devbox stops answering', [
       step(['gd-cycle', 'fw-devbox'], 'refused', 'SSH times out', `After ssh_timeout = 10 s.${win ? ' Inside a window this is held, with no heartbeat either.' : ''}`, ['gd_expect']),
       win ? (hb ? step(['gd-cycle', 'lan-kuma'], 'warn', 'No heartbeat', 'Held is not clean: with the devbox gone for more than about 20 minutes, Kuma fires anyway.', ['gd_hb']) : null)
-        : alert('unreachable', 'max', 'silence is a finding'),
+        : alert('unreachable', 'max', '"dejima-guard could not collect from devbox. It may be down, off the network, or refusing this key"'),
+      !win && hb && step(['gd-cycle', 'lan-kuma'], 'info', 'And no heartbeat', 'The alerting cycle sends none, so Kuma fires too, about 1200 s after the last ping.', ['gd_hb']),
     ]);
     add('guard', 'gd-pull', 'The devbox tries to reach the guard', [
       step(['dejima-host', 'fw-devbox'], 'refused', 'Dropped at the node', 'The guard is a LAN address, so rules 7-9 drop it (logged), and nothing on the guard listens anyway. The guard pulls; adding an outbound pinhole "for symmetry" would give that away.', []),
@@ -346,26 +347,32 @@ export function scenarios(cfg, d) {
     const link = cfg.dn_ra !== 'unset';
     const netFlag = { default: '', named: ' --drop-domains', sealed: ' --require-sealed' }[cfg.dn_net];
     const hop = ['p-dn-api', ...nodeFw, 'p-dn-launch'];
-    const middle = [
+    const reach = cfg.dn_net === 'default' ? 'global approvals only' : 'only the model API and the task\'s own domains, since --drop-domains drops global approvals too';
+    // A refusal from the filter comes after dejima has registered the session;
+    // one from the harness or --require-sealed comes before.
+    const lateRefusal = refusedHere && /check 7|internal_domains names|not sealed/.test(dnRefused[0]);
+    const startedLink = !link ? '' : refusedHere && !lateRefusal ? ' The launch waits the full 20 s for a session that never registers, so the reply has no link.'
+      : refusedHere ? ' It links a session that dies at once.' : ' and "Open the session: <link>"';
+    const middle = front => [
       step(hop, 'ok', 'ssh to the launcher', `${dv ? 'Through an inbound SSH rule for the API host: rule 1 if it sits on an admin subnet. ' : ''}The key is from="<API>",command="darner-launch …",restrict. The job arrives as JSON on stdin.`, []),
       refusedHere
-        ? step(['p-dn-launch'], 'refused', `dejima --isolated${netFlag} refuses`, `${dnRefused.join(' ')} The tmux window dn-k3x7q opened, so the frontend first hears "Started"; on the next poll the task has exited, and it says "dn-k3x7q ended." with no reason. The reason waits in darner:dn-k3x7q, for Enter.`, ['dn_net', 'dn_harness', 'cline_model'])
-        : step(['p-dn-launch', 'dn-harness'], 'ok', `dejima --isolated${netFlag}`, `In a tmux window named dn-k3x7q, with harness ${h}. An anonymous session: no project, a fresh ~/shared, global approvals only.${link ? ' The launch waits up to 20 s for dejima to register, so the reply can carry a remote-access link.' : ''}`, ['dn_net', 'dn_harness', 'dn_ra']),
+        ? step(['p-dn-launch'], 'refused', `dejima --isolated${netFlag} refuses`, `${dnRefused.join(' ')} The tmux window dn-k3x7q opened, so ${front === 'matrix' ? 'the bot first said "Started"; on the next poll the task has exited, and it says "dn-k3x7q ended." with no reason' : 'darner-web opened the session page; on the next poll it shows "Ended. Its output is kept here until it\'s cleared." with no reason'}. The reason waits in darner:dn-k3x7q, for Enter.`, ['dn_net', 'dn_harness', 'cline_model'])
+        : step(['p-dn-launch', 'dn-harness'], 'ok', `dejima --isolated${netFlag}`, `In a tmux window named dn-k3x7q, with harness ${h}. An anonymous session: no project, a fresh ~/shared, and ${reach}.${link ? ' The launch waits up to 20 s for dejima to register, so the reply can carry a remote-access link.' : ''}`, ['dn_net', 'dn_harness', 'dn_ra']),
       !refusedHere && step(['dn-harness', 'dn-share'], 'ok', 'RESULT.md, then .done', 'The prompt tells the agent how to deliver. A RESULT.md left without .done is still collected after 600 s of quiet, or when the session exits.', []),
       !refusedHere && step(hop, 'ok', 'Status poll', 'Every 30 s: ssh … status reports ready.', []),
       !refusedHere && step(['p-dn-launch', 'dn-share', 'p-dn-launch', ...nodeFw, 'p-dn-api'], 'ok', 'Fetch the zip', 'darner walks ~/shared by fd, regular files only, and builds the zip itself; the API rebuilds it again.', []),
     ];
     if (matrix) add('darner', 'dn-matrix', 'Send a task from Matrix', [
       step(['ph-matrix', 'net-matrix', 'mb-bot'], 'ok', '@dragonlet fix the flaky test', 'The sender must be on the bot\'s allowlist; anyone else is ignored silently. The bot reacts ⏳.', ['dn_front']),
-      step(['mb-bot', 'p-dn-api'], 'ok', 'POST /v1/tasks', `With the bot's own bearer token. It replies "Started dn-k3x7q → darner:dn-k3x7q"${link ? ' and "Open the session: <link>"' : ''}, and reacts ✅. A task the API itself refuses gets "Failed: …" and ❌ instead.`, ['dn_ra']),
-      ...middle,
+      step(['mb-bot', 'p-dn-api'], 'ok', 'POST /v1/tasks', `With the bot's own bearer token. It replies "Started dn-k3x7q → darner:dn-k3x7q"${startedLink}, and reacts ✅. A task the API itself refuses gets "Failed: …" and ❌ instead.`, ['dn_ra']),
+      ...middle('matrix'),
       !refusedHere && step(['mb-bot', 'p-dn-api'], 'ok', 'GET /v1/events', 'The bot polls for events and acks each one.', []),
       !refusedHere && step(['mb-bot', 'net-matrix', 'ph-matrix'], 'ok', 'Output, threaded as a reply', '"Output from dn-k3x7q (written by the agent, treat as untrusted)" and the summary, then the zip in a second reply, encrypted in E2EE rooms.', []),
     ]);
     if (webUi) add('darner', 'dn-web', 'Start a task from darner-web', [
       step(['ph-web', 'dn-proxy', 'p-dn-web'], 'ok', 'Through the auth proxy', 'darner-web has no login. The proxy is the gate.', ['dn_front']),
       step(['p-dn-web', 'p-dn-api'], 'ok', 'POST /v1/tasks', 'After a live preview of its settings and where each comes from. dejima\'s own refusals cannot show there; they show only as the task ending.', []),
-      ...middle,
+      ...middle('web'),
       !refusedHere && step(['p-dn-api', 'p-dn-web', 'dn-proxy', 'ph-web'], 'ok', 'Summary and a download link', `Shown until you press Clear, or for 7 days (output_retention).${link ? ' The session also links to its window in remote access.' : ''}`, ['dn_ra']),
     ]);
     if (!refusedHere) add('darner', 'dn-help', 'The agent asks for help', [
@@ -373,7 +380,7 @@ export function scenarios(cfg, d) {
       step([...hop, 'dn-share'], 'ok', 'Picked up by the next poll', 'A help event goes to the frontend that started the task.', []),
       cfg.dn_answers === 'on'
         ? step([...hop, 'dn-harness'], 'ok', 'Your answer is typed in', `--answers: pasted bracketed, control characters stripped, then Enter${h === 'cline' ? '; at cline\'s question prompt it is typed as keys, on one line' : ''}.`, ['dn_answers'])
-        : step(['p-dn-api'], 'info', 'No answering from chat', `${matrix ? `Matrix says "Attach to darner:dn-k3x7q to respond"${link ? ', or links the session' : ''}, and a reply gets ❌. ` : ''}${webUi ? 'darner-web still shows an answer box, and sending is refused: answering from chat is not enabled on this host.' : ''}`, ['dn_answers', 'dn_ra']),
+        : step(['p-dn-api'], 'info', 'No answering from chat', `${matrix ? `Matrix says "Attach to darner:dn-k3x7q to respond"${link ? ', or links the session' : ''}. A plain reply is ignored; one that mentions the bot gets "Failed: answering from chat is not enabled on this host" and ❌. ` : ''}${webUi ? 'darner-web still shows an answer box, and sending is refused: answering from chat is not enabled on this host.' : ''}`, ['dn_answers', 'dn_ra']),
     ]);
   }
 

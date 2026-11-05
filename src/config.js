@@ -135,7 +135,7 @@ export const KEYS = [
     effect: 'A timer every 15 min with 60 s jitter, or dejima-guard-loop every DEJIMA_GUARD_INTERVAL=900.' },
   { id: 'gd_alert', project: 'guard', group: 'Alerts', where: '/etc/dejima-guard/config', key: 'alert route', setup: true,
     opts: [{ v: 'ntfy_url' }, { v: 'alert_command' }], def: 'ntfy_url',
-    effect: 'ntfy on the guard\'s own topic, or a command that gets the alert on stdin.' },
+    effect: 'ntfy on the guard\'s own topic, or a command that gets the alert on stdin. With both set, alert_command wins.' },
   { id: 'gd_hb', project: 'guard', group: 'Alerts', where: '/etc/dejima-guard/config', key: 'heartbeat_url',
     opts: [{ v: 'unset' }, { v: 'https://kuma.example.lan/api/push/…' }], def: 'https://kuma.example.lan/api/push/…',
     effect: 'Pinged after each clean cycle. When it stops, the dead-man\'s switch fires.' },
