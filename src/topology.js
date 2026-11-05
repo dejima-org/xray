@@ -276,6 +276,7 @@ export function derive(cfg) {
   ], { info: info('Public IPv4. Both hardeners leave it open on purpose: the boundary they draw is around your LAN.', []) });
 
   const root = box('world', 'world', '', [internet, lan]);
+  markOwners(root);
   // ---- static links -----------------------------------------------------
   link('f-project', 'm-project', 'rw');
   link('f-share', 'm-share', 'rw');
@@ -286,6 +287,16 @@ export function derive(cfg) {
   if (!e.selfHosted && e.proxy === 'off') link('f-cred', 'm-cred', 'bad');
   if (on.remote && cfg.ra_ntfy !== 'unset') link('m-notify', 'p-notify', 'rw');
   return { root, edges, e, refused, sealed, names };
+}
+
+// Who a thing belongs to, so dejima's own parts stand out from the systems
+// they run on and from everything else on the network.
+const OURS = new Set(['docker', 'dn-docker', 'netns', 'c-filter', 'g-nft', 's-dns', 's-logs', 'c-session', 's-term', 's-guards', 'c-dn',
+  'f-stores', 'p-launcher', 'p-proxy', 'p-shipper', 'p-notify', 'p-attach', 'p-dn-launch', 'p-dn-api', 'p-dn-web', 'mb-bot',
+  'p-audit', 'p-guardshell', 'fw-devbox', 'fw-ci-c', 'fw-ci-p', 'ci-timer', 'ci-dns', 'ci-fwd', 'pve-cron', 'gd-cycle', 'gd-baseline']);
+function markOwners(n) {
+  n.own = OURS.has(n.id) ? 'ours' : /^(net|lan|ph)-|^(internet|lan)$/.test(n.id) ? 'ext' : 'sys';
+  for (const c of n.children || []) markOwners(c);
 }
 
 function dnHarness(cfg, e) { return cfg.dn_harness === 'default' ? e.harness : cfg.dn_harness; }

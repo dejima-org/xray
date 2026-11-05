@@ -35,6 +35,8 @@
   --key: var(--gb-yellow);
   --info: var(--gb-blue);
   --wall: var(--gb-bg3);
+  /* The wordmark's orange, marking what is dejima's own. */
+  --brand: var(--gb-orange);
 
   --font-head: "Jost", "Futura", "Century Gothic", system-ui, sans-serif;
   --font-body: "IBM Plex Serif", Georgia, serif;
@@ -220,6 +222,10 @@ h2, h3, h4 { font-weight: 500; margin: 0; }
 .legend div { display: flex; align-items: center; gap: .35rem; }
 .legend dd { margin: 0; }
 .sw { width: .9rem; height: .3rem; border-radius: 2px; }
+.sw-ours, .sw-sys, .sw-ext { width: .8rem; height: .6rem; border-radius: 2px; border: 1px solid var(--rule-strong); }
+.sw-ours { background: color-mix(in srgb, var(--brand) 18%, var(--bg-raise)); border-color: var(--brand); }
+.sw-sys { background: var(--bg-raise); }
+.sw-ext { border-style: dashed; }
 .sw-ok { background: var(--ok); }
 .sw-refused { background: var(--refused); }
 .sw-warn { background: var(--warn); }
@@ -332,9 +338,25 @@ h2, h3, h4 { font-weight: 500; margin: 0; }
 [data-id="c-dn"] > .n-kids { flex-direction: row; }
 [data-id="docker"] > .n-kids > [data-id="bridge"] { align-self: flex-start; }
 
+/* Ownership. dejima's own parts carry the wordmark's orange; the systems they
+   run on stay neutral; everything else on the network recedes. */
+.o-ext.leaf { background: transparent; border-style: dashed; border-color: var(--rule-strong); }
+.o-ext.leaf .n-label { color: var(--fg-dim); font-weight: 400; }
+.o-sys.leaf .n-label { color: var(--gb-fg2); }
+.o-ours.leaf:not(.k-gate) {
+  background: color-mix(in srgb, var(--brand) 7%, var(--bg-raise));
+  border-color: color-mix(in srgb, var(--brand) 45%, var(--rule));
+}
+.o-ours.leaf:not(.k-gate) .n-label { color: var(--fg); }
+.o-ours > .n-label::before, .o-ours > .n-head > .n-label::before {
+  content: ""; display: inline-block; width: 6px; height: 6px; margin-right: 6px; vertical-align: 2px;
+  background: var(--brand); border-radius: 1px;
+}
+.box.o-ours > .n-head .n-label { color: var(--fg); }
+
 /* scenario state */
-.lit:not(.box) { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent); }
-.box.lit > .n-head .n-label { color: var(--accent); }
+.lit:not(.box) { border-color: var(--fg); box-shadow: 0 0 0 3px color-mix(in srgb, var(--fg) 28%, transparent); }
+.box.lit > .n-head .n-label { color: var(--fg); text-decoration: underline; text-underline-offset: 3px; }
 .picked:not(.box) { outline: 2px solid var(--fg); outline-offset: 2px; }
 .box.picked > .n-head .n-label { text-decoration: underline; text-underline-offset: 3px; }
 .gone { opacity: .12; filter: grayscale(1); }

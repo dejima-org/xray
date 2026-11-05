@@ -48,8 +48,9 @@ export class Stage {
       el.classList.add('entering');
       this.els.set(node.id, el);
     }
-    el.className = el.className.replace(/\b(k|t)-\S+/g, '').replace(/\bempty\b/, '').trim();
+    el.className = el.className.replace(/\b(k|t|o)-\S+/g, '').replace(/\bempty\b/, '').trim();
     el.classList.add(`k-${node.kind}`);
+    if (node.own) el.classList.add(`o-${node.own}`);
     if (node.tone) el.classList.add(`t-${node.tone}`);
     el.classList.toggle('on-wall', !!node.wall);
     el.querySelector(':scope > .n-head .n-label, :scope > .n-label').textContent = node.label || '';
