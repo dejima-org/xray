@@ -1,4 +1,4 @@
-# dejima-viz
+# dejima-xray
 
 An interactive diagram of what dejima and its sister projects do: which component runs where, which wall bounds it, and where each request is stopped. Turn on a sister project or change a setting and the picture redraws at once. Pick something to happen and a packet walks its real path, with each hop explained.
 
