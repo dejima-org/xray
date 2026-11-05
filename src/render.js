@@ -216,12 +216,12 @@ export class Stage {
   // Draw one step: its line fades in whole, arrowed towards where it ends,
   // with the step's title beside the end. `instant` draws it already dimmed,
   // for steps passed. Resolves once it has been on screen long enough to read.
-  travel(ids, verdict, speed = 1, { instant = false, title = '', step = null } = {}) {
+  travel(ids, verdict, speed = 1, { instant = false, title = '', step = null, loud = false } = {}) {
     const pts = ids.map(id => this.point(id)).filter(Boolean);
     if (!pts.length) return Promise.resolve();
     for (const t of this.trails.children) t.classList.add('old');
     const g = document.createElementNS(SVG, 'g');
-    g.setAttribute('class', `step-mark v-${verdict}`);
+    g.setAttribute('class', `step-mark v-${verdict}${loud ? ' loud' : ''}`);
     this.trails.append(g);
     let path = null;
     let end = pts[pts.length - 1];
@@ -238,18 +238,26 @@ export class Stage {
     const b = this.burst(end, verdict);
     b.addEventListener('click', ev => { ev.stopPropagation(); pick(); });
     g.append(b);
+    // A page: rings that keep going out from where it lands.
+    if (loud && !instant) for (let i = 0; i < 3; i++) {
+      const ring = document.createElementNS(SVG, 'circle');
+      ring.setAttribute('cx', end[0]); ring.setAttribute('cy', end[1]); ring.setAttribute('r', 14);
+      ring.setAttribute('class', 'page-ring');
+      ring.style.animationDelay = `${i * 0.45}s`;
+      g.append(ring);
+    }
     if (instant) { g.classList.add('old'); return Promise.resolve(); }
-    if (title) this.captionAt(title, verdict, path, end);
+    if (title) this.captionAt(title, verdict, path, end, loud);
     if (!reduced()) g.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 380, easing: 'ease-out' });
     return wait(900 / speed);
   }
 
   // The caption sits beside the end of the line, on whichever side of it
   // covers least of the picture, and stays where it was put.
-  captionAt(title, verdict, path, end) {
+  captionAt(title, verdict, path, end, loud = false) {
     this.caption?.remove();
     const el = document.createElement('div');
-    el.className = `caption v-${verdict}`;
+    el.className = `caption v-${verdict}${loud ? ' loud' : ''}`;
     el.textContent = title;
     el.setAttribute('aria-hidden', 'true');
     this.world.append(el);

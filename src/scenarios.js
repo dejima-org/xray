@@ -172,7 +172,11 @@ export function scenarios(cfg, d) {
       : step(['dejima-host', 'lan-nas'], 'warn', 'Go looking on the LAN', 'On a laptop, nothing below the container bounds it. It has your user, your home directory, and your LAN.', []),
     dv && step(['fw-devbox', 'pve-log'], 'info', 'The drop is logged', 'Written by the hypervisor. A quiet log going loud is the strongest signal you get. Nothing in either repo reads it for you.', []),
     dv && step(['dejima-host', 'fw-devbox', 'lan-router', 'net-unlisted'], 'warn', 'The internet is still open', 'The devbox reaches public IPv4 on any port, by its outbound ACCEPT policy. The wall is around your LAN, not around the internet.', []),
-    on.guard && step(['gd-cycle', ...nodeFw, 'p-guardshell'], 'info', 'About every 15 minutes, the guard looks', 'A changed critical path, a new unit or listener, or changes alongside a failed reach alert at max; other changes, or a failed reach alone, at high. Unless the payload thought to forge the state.', []),
+    on.guard && step(['gd-cycle', ...nodeFw, 'p-guardshell'], 'info', 'About every 15 minutes, the guard looks', 'It collects the devbox\'s state over SSH and diffs it against the baseline it keeps on its own disk, where root on the devbox cannot reach.', []),
+    on.guard && (cfg.gd_alert === 'ntfy_url'
+      ? step(['gd-cycle', 'lan-ntfy', 'ph-ntfy'], 'ok', 'It pages you', 'If the payload left anything the guard watches, the next cycle alerts at max priority: a changed critical path, a new unit or listener, or changes alongside a failed reach. Any other change alerts at high. It keeps alerting every cycle until you accept the new state. What it cannot catch is a payload that forges the state it reports.', ['gd_alert'], { loud: true })
+      : step(['gd-cycle'], 'ok', 'It pages you', 'alert_command runs with the alert on stdin, every cycle until you accept the new state: a changed critical path, a new unit or listener, or changes alongside a failed reach. What it cannot catch is a payload that forges the state it reports.', ['gd_alert'], { loud: true })),
+    on.guard && cfg.gd_hb !== 'unset' && step(['gd-cycle', 'lan-kuma'], 'ok', 'And Kuma pages you too', 'An alerting cycle sends no heartbeat, so about 1200 s after the last one Uptime Kuma fires on its own. So does a payload that kills the guard or cuts it off: silence pages you as well.', ['gd_hb'], { loud: true }),
   ]));
 
   // Close
@@ -293,7 +297,7 @@ export function scenarios(cfg, d) {
     const ntfy = cfg.gd_alert === 'ntfy_url';
     const alertTo = ntfy ? ['lan-ntfy', 'ph-ntfy'] : ['gd-cycle'];
     const alert = (title, pri, body) => step(['gd-cycle', ...alertTo], 'ok', `Alert: ${title}`,
-      `${ntfy ? `At ${pri} priority` : 'alert_command gets the title and body on stdin, with no priority'}${body ? `: ${body}.` : '.'} No paths or unit names in it; the detail stays in dejima-guard report, on the guard.`, ['gd_alert']);
+      `${ntfy ? `At ${pri} priority` : 'alert_command gets the title and body on stdin, with no priority'}${body ? `: ${body}.` : '.'} No paths or unit names in it; the detail stays in dejima-guard report, on the guard.`, ['gd_alert'], { loud: pri !== 'low' });
     const after = step(['gd-cycle'], 'info', 'No heartbeat, and it repeats', `A cycle that alerted sends no heartbeat${hb ? '' : ' (and there is no heartbeat_url anyway)'}, and neither does one whose alert failed to send, so a broken alert route still trips the dead-man's switch. check never moves the baseline, so the same finding alerts every 15 minutes until dejima-guard accept.`, ['gd_hb']);
     const collect = [
       step(['gd-cycle', 'fw-devbox', 'p-guardshell'], 'ok', 'SSH in with the guard key',

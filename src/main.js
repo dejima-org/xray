@@ -38,7 +38,7 @@ async function apply() {
   const wasPlaying = state.playing;
   stopRun();
   stage.clearTrails();
-  for (const c of ['lit', 'gone', 'kept']) stage.mark([], c);
+  for (const c of ['lit', 'gone', 'kept', 'paged']) stage.mark([], c);
   if (state.picked?.line) state.picked = null;
   const settled = stage.update(derived.root, derived.edges);
   if (state.fit) fit();
@@ -218,7 +218,7 @@ async function play(id, from = 0, auto = true) {
   state.playing = auto;
   const s = current();
   stage.clearTrails();
-  stage.mark([], 'gone'); stage.mark([], 'kept'); stage.mark([], 'lit');
+  stage.mark([], 'gone'); stage.mark([], 'kept'); stage.mark([], 'lit'); stage.mark([], 'paged');
   const gone = [], kept = [];
   for (let i = 0; i < from; i++) {
     stage.travel(s.steps[i].path, s.steps[i].verdict, 1, { instant: true, step: s.steps[i] });
@@ -233,7 +233,8 @@ async function play(id, from = 0, auto = true) {
     const st = s.steps[i];
     stage.mark(st.path, 'lit');
     focus(st.path);
-    await stage.travel(st.path, st.verdict, state.speed, { title: st.title, step: st });
+    stage.mark(st.loud ? [st.path[st.path.length - 1]] : [], 'paged');
+    await stage.travel(st.path, st.verdict, state.speed, { title: st.title, step: st, loud: !!st.loud });
     if (run !== state.run) return;
     gone.push(...(st.gone || [])); kept.push(...(st.kept || []));
     stage.mark(gone, 'gone'); stage.mark(kept, 'kept');
