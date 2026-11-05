@@ -20,7 +20,7 @@ check: build
 	exit $$missing
 
 test:
-	node --test test/
+	node --test test/*.test.mjs
 
 serve: build
 	python3 -m http.server -d public 8000
