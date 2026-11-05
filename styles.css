@@ -369,12 +369,11 @@ h2, h3, h4 { font-weight: 500; margin: 0; }
 .l-ro { stroke: var(--fg-faint); stroke-dasharray: 2 4; opacity: .8; }
 .l-socket, .l-reads { stroke: var(--info); opacity: .7; }
 .l-warn { stroke: var(--warn); stroke-dasharray: 5 4; }
-.trail { fill: none; stroke-width: 3; stroke-linecap: round; opacity: .85; }
-.packet { stroke: var(--bg-well); stroke-width: 2; }
-.trail.v-ok { stroke: var(--ok); } .packet.v-ok { fill: var(--ok); }
-.trail.v-refused { stroke: var(--refused); } .packet.v-refused { fill: var(--refused); }
-.trail.v-warn { stroke: var(--warn); } .packet.v-warn { fill: var(--warn); }
-.trail.v-info { stroke: var(--info); stroke-dasharray: 4 6 !important; } .packet.v-info { fill: var(--info); }
+.trail { fill: none; stroke-width: 3; stroke-linecap: round; opacity: .9; }
+.trail.v-ok { stroke: var(--ok); } .tip.v-ok { fill: var(--ok); }
+.trail.v-refused { stroke: var(--refused); } .tip.v-refused { fill: var(--refused); }
+.trail.v-warn { stroke: var(--warn); } .tip.v-warn { fill: var(--warn); }
+.trail.v-info { stroke: var(--info); stroke-dasharray: 4 6; } .tip.v-info { fill: var(--info); }
 .burst circle { fill: none; stroke-width: 2.5; }
 .burst path { stroke-width: 3; stroke-linecap: round; }
 .burst.v-ok circle { stroke: var(--ok); }
@@ -382,7 +381,6 @@ h2, h3, h4 { font-weight: 500; margin: 0; }
 .burst.v-refused path { stroke: var(--refused); }
 .burst.v-warn circle { stroke: var(--warn); }
 .burst.v-info circle { stroke: var(--info); }
-.burst { animation: pop .35s ease-out; }
 .link.gone { opacity: .06; }
 .caption {
   position: absolute; top: 0; left: 0; z-index: 6; pointer-events: none;
@@ -394,7 +392,7 @@ h2, h3, h4 { font-weight: 500; margin: 0; }
 .caption.v-ok { border-left-color: var(--ok); }
 .caption.v-refused { border-left-color: var(--refused); }
 .caption.v-warn { border-left-color: var(--warn); }
-.wires .old { opacity: .22; transition: opacity .3s; }
+.wires .old { opacity: .2; transition: opacity .35s; }
 @keyframes pop { from { opacity: 0; } to { opacity: 1; } }
 
 /* --- small screens: picture on top, one panel below ------------------- */

@@ -1,5 +1,5 @@
 // Draws the containment tree as nested elements (CSS does the layout) and an
-// SVG overlay for links and moving packets. Elements are keyed by node id, so
+// SVG overlay for links and the lines a scenario draws. Elements are keyed by node id, so
 // a config change only touches what changed, and anything that moved glides
 // from where it was.
 
@@ -17,7 +17,18 @@ export class Stage {
     this.svg.classList.add('wires');
     this.links = document.createElementNS(SVG, 'g');
     this.trails = document.createElementNS(SVG, 'g');
-    this.svg.append(this.links, this.trails);
+    const defs = document.createElementNS(SVG, 'defs');
+    for (const v of ['ok', 'refused', 'warn', 'info']) {
+      const m = document.createElementNS(SVG, 'marker');
+      Object.entries({ id: `arrow-${v}`, viewBox: '0 0 10 10', refX: 9, refY: 5, markerWidth: 7, markerHeight: 7, orient: 'auto-start-reverse' })
+        .forEach(([k, val]) => m.setAttribute(k, val));
+      const tip = document.createElementNS(SVG, 'path');
+      tip.setAttribute('d', 'M0,0 L10,5 L0,10 z');
+      tip.setAttribute('class', `tip v-${v}`);
+      m.append(tip);
+      defs.append(m);
+    }
+    this.svg.append(defs, this.links, this.trails);
     world.append(this.svg);
     this.settled = Promise.resolve();
   }
@@ -174,68 +185,35 @@ export class Stage {
 
   clearTrails() { this.trails.replaceChildren(); this.caption?.remove(); this.caption = null; }
 
-  // Move a packet through the centres of `ids`. Resolves when it arrives.
-  // `instant` draws the finished trail at once, dimmed, for steps already
-  // passed; `title` rides beside the packet as a caption.
+  // Draw one step: its line fades in whole, arrowed towards where it ends,
+  // with the step's title beside the end. `instant` draws it already dimmed,
+  // for steps passed. Resolves once it has been on screen long enough to read.
   travel(ids, verdict, speed = 1, { instant = false, title = '' } = {}) {
     const pts = ids.map(id => this.point(id)).filter(Boolean);
     if (!pts.length) return Promise.resolve();
-    const cls = `v-${verdict}`;
     for (const t of this.trails.children) t.classList.add('old');
     const end = pts[pts.length - 1];
-    const cap = title && this.captionFor(title, verdict);
-    if (pts.length === 1) {
-      this.burst(end, verdict);
-      if (instant) this.trails.lastChild.classList.add('old');
-      cap?.place(end);
-      return instant ? Promise.resolve() : wait(500 / speed);
+    const g = document.createElementNS(SVG, 'g');
+    g.setAttribute('class', `step-mark v-${verdict}`);
+    this.trails.append(g);
+    let path = null;
+    if (pts.length > 1) {
+      path = document.createElementNS(SVG, 'path');
+      path.setAttribute('d', smooth(pts));
+      path.setAttribute('class', `trail v-${verdict}`);
+      path.setAttribute('marker-end', `url(#arrow-${verdict})`);
+      g.append(path);
     }
-    const path = document.createElementNS(SVG, 'path');
-    path.setAttribute('d', smooth(pts));
-    path.setAttribute('class', `trail ${cls}`);
-    this.trails.append(path);
-    if (instant) {
-      path.classList.add('old');
-      this.burst(end, verdict);
-      this.trails.lastChild.classList.add('old');
-      return Promise.resolve();
-    }
-    const dot = document.createElementNS(SVG, 'circle');
-    dot.setAttribute('r', 6);
-    dot.setAttribute('class', `packet ${cls}`);
-    this.trails.append(dot);
-    const len = path.getTotalLength();
-    path.style.strokeDasharray = `${len}`;
-    path.style.strokeDashoffset = `${len}`;
-    const dur = Math.min(2400, Math.max(700, len * 1.5)) / speed;
-    if (reduced()) {
-      path.style.strokeDashoffset = '0';
-      dot.remove();
-      this.burst(end, verdict);
-      cap?.place(end);
-      return wait(250);
-    }
-    return new Promise(res => {
-      const t0 = performance.now();
-      let frame = 0;
-      const tick = now => {
-        const t = Math.min(1, (now - t0) / dur);
-        const e = t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2;
-        const p = path.getPointAtLength(e * len);
-        dot.setAttribute('cx', p.x);
-        dot.setAttribute('cy', p.y);
-        path.style.strokeDashoffset = `${len * (1 - e)}`;
-        cap?.place([p.x, p.y], frame++ % 8 === 0);
-        if (t < 1) requestAnimationFrame(tick);
-        else { dot.remove(); this.burst(end, verdict); cap?.place(end, true); res(); }
-      };
-      requestAnimationFrame(tick);
-    });
+    g.append(this.burst(end, verdict));
+    if (instant) { g.classList.add('old'); return Promise.resolve(); }
+    if (title) this.captionAt(title, verdict, path, end);
+    if (!reduced()) g.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 380, easing: 'ease-out' });
+    return wait(900 / speed);
   }
 
-  // A caption that follows a point, on whichever side of it covers the least
-  // of the picture. It only changes side when re-scored, so it does not jitter.
-  captionFor(title, verdict) {
+  // The caption sits beside the end of the line, on whichever side of it
+  // covers least of the picture, and stays where it was put.
+  captionAt(title, verdict, path, end) {
     this.caption?.remove();
     const el = document.createElement('div');
     el.className = `caption v-${verdict}`;
@@ -243,30 +221,37 @@ export class Stage {
     el.setAttribute('aria-hidden', 'true');
     this.world.append(el);
     this.caption = el;
-    const w = el.offsetWidth, h = el.offsetHeight, gap = 16;
+    const w = el.offsetWidth, h = el.offsetHeight, gap = 14;
+    // Direction of travel into the end point, so a caption beside the line
+    // can sit just before it rather than over where it arrives.
+    let dx = 0, dy = -1;
+    if (path) {
+      const len = path.getTotalLength();
+      const a = path.getPointAtLength(Math.max(0, len - 40));
+      const n = Math.hypot(end[0] - a.x, end[1] - a.y) || 1;
+      dx = (end[0] - a.x) / n; dy = (end[1] - a.y) / n;
+    }
+    const back = [end[0] - dx * 40, end[1] - dy * 40];
+    const px = -dy, py = dx;
+    const candidates = [
+      [back[0] + px * (gap + h / 2) - w / 2, back[1] + py * (gap + h / 2) - h / 2],
+      [back[0] - px * (gap + h / 2) - w / 2, back[1] - py * (gap + h / 2) - h / 2],
+      [end[0] + gap, end[1] - h - gap], [end[0] + gap, end[1] + gap],
+      [end[0] - w - gap, end[1] - h - gap], [end[0] - w - gap, end[1] + gap],
+    ];
     const wr = this.world.getBoundingClientRect();
     const solid = [...this.world.querySelectorAll('.leaf, .n-head:not([hidden])')].map(n => {
       const r = n.getBoundingClientRect();
       return [(r.left - wr.left) / this.scale, (r.top - wr.top) / this.scale, (r.right - wr.left) / this.scale, (r.bottom - wr.top) / this.scale];
     });
-    const sides = [[gap, -h - gap], [gap, gap], [-w - gap, -h - gap], [-w - gap, gap],
-      [-w / 2, -h - 3 * gap], [-w / 2, 3 * gap], [3 * gap, -h / 2], [-w - 3 * gap, -h / 2]];
     const maxX = this.world.offsetWidth - w, maxY = this.world.offsetHeight - h;
-    const at = ([x, y], [dx, dy]) => [Math.max(0, Math.min(maxX, x + dx)), Math.max(0, Math.min(maxY, y + dy))];
+    const clamp = ([x, y]) => [Math.max(0, Math.min(maxX, x)), Math.max(0, Math.min(maxY, y))];
     const cost = ([x, y]) => solid.reduce((sum, [a, b, c, d]) =>
       sum + Math.max(0, Math.min(c, x + w) - Math.max(a, x)) * Math.max(0, Math.min(d, y + h) - Math.max(b, y)), 0);
-    let side = 0;
-    return {
-      place: (p, rescore = false) => {
-        if (rescore) {
-          const scores = sides.map(o => cost(at(p, o)));
-          const best = scores.indexOf(Math.min(...scores));
-          if (scores[best] < scores[side] * 0.6) side = best;
-        }
-        const [x, y] = at(p, sides[side]);
-        el.style.transform = `translate(${x}px, ${y}px)`;
-      },
-    };
+    let best = clamp(candidates[0]), bestCost = Infinity;
+    for (const c of candidates.map(clamp)) { const k = cost(c); if (k < bestCost) { best = c; bestCost = k; } }
+    el.style.transform = `translate(${best[0]}px, ${best[1]}px)`;
+    if (!reduced()) el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 300, delay: 120, fill: 'backwards' });
   }
 
   burst([x, y], verdict) {
@@ -281,7 +266,7 @@ export class Stage {
       x1.setAttribute('d', 'M-6,-6 L6,6 M6,-6 L-6,6');
       g.append(x1);
     }
-    this.trails.append(g);
+    return g;
   }
 
   mark(ids, cls) {
