@@ -64,7 +64,7 @@ export function scenarios(cfg, d) {
   ]) : e.proxy === 'off' ? [
     step(['s-harness', 'm-cred'], 'warn', 'Read the real credential', 'With [credentials] proxy = off, the credential file is mounted into the container. The agent can read it, and send it anywhere it can reach.', ['proxy']),
     fw && step(['s-harness', 's-dns'], 'ok', `Look up ${e.apiHost}`, 'The API name joins the open list when the proxy is off.', ['proxy']),
-    step(['s-harness', ...(fw ? ['g-nft'] : []), ...out('net-api')], 'warn', 'Straight to the API, with the real key', 'Through the filter, through the host, out. Nothing on the way can tell your key from a copy.', ['proxy']),
+    step(['s-harness', ...(fw ? ['g-nft'] : []), ...out('net-api')], 'warn', 'Straight to the API, with the real key', fw ? 'Through the filter, through the host, out. Nothing on the way can tell your key from a copy.' : 'No filter, so straight through the host and out. Nothing on the way can tell your key from a copy.', ['proxy']),
   ] : [
     step(['s-harness', 's-term'], 'ok', e.transport === 'tls' ? `${e.apiHost} resolves to 127.0.0.1` : 'ANTHROPIC_BASE_URL → 127.0.0.1:18300',
       e.transport === 'tls' ? '/etc/hosts maps it to loopback, so no DNS query is made. A terminator with a cert dejima made for this session ends TLS there.'
@@ -93,7 +93,7 @@ export function scenarios(cfg, d) {
   // A declared name
   const pypiOk = approved('pypi.org');
   add('dejima', 'pypi', 'Reach a name the project declares', guard(!fw ? [
-    step(['s-harness', ...out('net-pypi')], 'warn', 'No filter at all', 'Everything is reachable with the firewall off.', ['firewall']),
+    step(['s-harness', ...out('net-pypi')], 'warn', 'No filter at all', dv ? 'With the firewall off, everything public is reachable; the node still drops the private ranges.' : 'Everything is reachable with the firewall off.', ['firewall']),
   ] : [
     step(['s-harness', 's-dns'], pypiOk ? 'ok' : 'refused', 'Look up pypi.org',
       pypiOk ? `Permitted by ${approvedBy('pypi.org')}, so it is forwarded.`
@@ -156,7 +156,7 @@ export function scenarios(cfg, d) {
     e.blocked.length
       ? step(['s-harness', 's-guards'], 'refused', 'git push origin main', `Refused: main and master are blocked branches.${cline ? ' Under cline this is only the git wrapper on PATH: /usr/bin/git steps around it and no hook catches that, so only the forge\'s own branch protection would refuse main.' : ''}`, ['workflow'])
       : step(['s-harness', 's-guards', 'g-nft', ...out('net-github')], 'warn', 'git push origin main',
-        'Allowed. local-only blocks no branches because it never pushes, and --allow-github-push gives it a push host anyway, so the guard has no branch to refuse. Only GitHub\'s own branch protection stands in the way.', ['workflow', 'ghpush']),
+        `The guard allows it: local-only blocks no branches because it never pushes, and --allow-github-push gives it a push host anyway. ${e.ssh_key !== 'unset' ? 'With a session key loaded, only GitHub\'s own branch protection stands in the way.' : 'Here GitHub refuses the login, since local-only forwards no agent and no ssh_key is set; with a session key, only its branch protection would stand in the way.'}`, ['workflow', 'ghpush', 'ssh_key']),
     step(['s-harness', 's-guards'], 'ok', 'git push origin agent/fix-tests', `To ${e.pushHosts.join(' or ')}, a push host. Allowed.`, ['workflow', 'forge', 'ghpush']),
     toForge,
     mergeStep,
