@@ -16,7 +16,7 @@ export function derive(cfg) {
   const sealed = sealedState(e);
   const names = permitted(e);
   const edges = [];
-  const link = (from, to, kind, label) => edges.push({ id: `${from}>${to}`, from, to, kind, label });
+  const link = (from, to, kind, about, keys = []) => edges.push({ id: `${from}>${to}`, from, to, kind, about, keys });
 
   // ---- the dejima host: laptop, or the devbox VM ------------------------
   const iso = e.isolated === 'on';
@@ -283,14 +283,18 @@ export function derive(cfg) {
   const root = box('world', 'world', '', [internet, lan]);
   markOwners(root);
   // ---- static links -----------------------------------------------------
-  link('f-project', 'm-project', 'rw');
-  link('f-share', 'm-share', 'rw');
-  if (e.ro !== 'unset') link('f-ro', 'm-ro', 'ro');
-  if (e.rw !== 'unset') link('f-rw', 'm-rw', 'rw');
-  if (e.rwpp !== 'unset') link('f-rwpp', 'm-rwpp', 'rw');
-  if (e.proxied) { link('m-sock', 'p-proxy', 'socket'); link('f-cred', 'p-proxy', 'reads'); }
-  if (!e.selfHosted && e.proxy === 'off') link('f-cred', 'm-cred', 'warn');
-  if (on.remote && cfg.ra_ntfy !== 'unset') link('m-notify', 'p-notify', 'rw');
+  link('f-project', 'm-project', 'rw', iso ? 'A Docker volume, mounted at /dejima/work, writable. Removed when the session closes.'
+    : 'The project directory, bind-mounted at the same path, writable. .git/hooks is laid over read-only.', ['isolated']);
+  link('f-share', 'm-share', 'rw', `${iso ? 'This session\'s fresh share' : 'This project\'s share'} on the host, bind-mounted at ~/shared, writable.`, ['isolated']);
+  if (e.ro !== 'unset') link('f-ro', 'm-ro', 'ro', `${e.ro}, bind-mounted at the same path, read-only.`, ['ro']);
+  if (e.rw !== 'unset') link('f-rw', 'm-rw', 'rw', `${e.rw}, bind-mounted at the same path, writable. Every project that mounts it shares it.`, ['rw']);
+  if (e.rwpp !== 'unset') link('f-rwpp', 'm-rwpp', 'rw', `${e.rwpp}/projects/${SLUG} on the host, mounted at ${e.rwpp}: writable, and this project's alone.`, ['rwpp']);
+  if (e.proxied) {
+    link('m-sock', 'p-proxy', 'socket', 'The credential proxy\'s unix socket, in a directory mounted read-only. The session\'s only way to the model API: no network involved.', ['proxy', 'transport']);
+    link('f-cred', 'p-proxy', 'reads', 'The proxy reads the real credential on the host. It never enters the container.', ['proxy', 'backend']);
+  }
+  if (!e.selfHosted && e.proxy === 'off') link('f-cred', 'm-cred', 'warn', 'With [credentials] proxy = off, the real credential file is mounted into the container, where the agent can read it.', ['proxy']);
+  if (on.remote && cfg.ra_ntfy !== 'unset') link('m-notify', 'p-notify', 'rw', 'The session\'s marker directory, watched from the host. A hook writes an empty done or waiting file; the watcher turns it into a push.', ['ra_ntfy']);
   return { root, edges, e, refused, sealed, names };
 }
 

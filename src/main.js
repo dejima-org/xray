@@ -10,7 +10,7 @@ const state = { cfg: load(), picked: null, scenario: null, step: 0, playing: fal
 let derived, list = [];
 
 const wrap = $('#stage-wrap'), sizer = $('#sizer'), world = $('#world');
-const stage = new Stage(world, id => pick(id));
+const stage = new Stage(world, id => pick(id), line => pickLine(line));
 
 // ---- config persistence: the URL carries what differs from the defaults ---
 function load() {
@@ -37,6 +37,9 @@ async function apply() {
   list = scenarios(state.cfg, derived);
   const wasPlaying = state.playing;
   stopRun();
+  stage.clearTrails();
+  for (const c of ['lit', 'gone', 'kept']) stage.mark([], c);
+  if (state.picked?.line) state.picked = null;
   const settled = stage.update(derived.root, derived.edges);
   if (state.fit) fit();
   renderRail();
@@ -215,7 +218,7 @@ async function play(id, from = 0, auto = true) {
   stage.mark([], 'gone'); stage.mark([], 'kept'); stage.mark([], 'lit');
   const gone = [], kept = [];
   for (let i = 0; i < from; i++) {
-    stage.travel(s.steps[i].path, s.steps[i].verdict, 1, { instant: true });
+    stage.travel(s.steps[i].path, s.steps[i].verdict, 1, { instant: true, step: s.steps[i] });
     gone.push(...(s.steps[i].gone || [])); kept.push(...(s.steps[i].kept || []));
   }
   stage.mark(gone, 'gone'); stage.mark(kept, 'kept');
@@ -227,7 +230,7 @@ async function play(id, from = 0, auto = true) {
     const st = s.steps[i];
     stage.mark(st.path, 'lit');
     focus(st.path);
-    await stage.travel(st.path, st.verdict, state.speed, { title: st.title });
+    await stage.travel(st.path, st.verdict, state.speed, { title: st.title, step: st });
     if (run !== state.run) return;
     gone.push(...(st.gone || [])); kept.push(...(st.kept || []));
     stage.mark(gone, 'gone'); stage.mark(kept, 'kept');
@@ -269,12 +272,36 @@ function pick(id) {
   tab('side', true);
 }
 
+function pickLine(line) {
+  state.picked = { line };
+  stage.mark([], 'picked');
+  renderInspector();
+  tab('side', true);
+}
+
+const VERDICT = { ok: 'Allowed', refused: 'Refused', warn: 'Allowed, and worth worrying about', info: 'What happens here' };
+const LINK = { rw: 'Mounted, writable', ro: 'Mounted, read-only', socket: 'A unix socket', reads: 'Read on the host', warn: 'Mounted, and worth worrying about' };
+
 function renderInspector() {
   const box = $('#inspector');
   box.replaceChildren();
-  const n = state.picked && stage.nodes.get(state.picked);
+  const ln = state.picked?.line;
+  if (ln) {
+    const ends = id => stage.nodes.get(id)?.label || id;
+    if (ln.kind === 'link') {
+      const l = ln.link;
+      box.append(el('h3', null, `${ends(l.from)} → ${ends(l.to)}`), el('p', 'ins-sub', LINK[l.kind] || l.kind), el('p', 'ins-what', l.about || ''));
+      keysBlock(box, l.keys || []);
+    } else {
+      const st = ln.step;
+      box.append(el('h3', null, st.title), el('p', `ins-sub v-${st.verdict}`, `${VERDICT[st.verdict]}: ${st.path.map(ends).join(' → ')}`), el('p', 'ins-what', st.detail));
+      keysBlock(box, st.keys);
+    }
+    return;
+  }
+  const n = typeof state.picked === 'string' && stage.nodes.get(state.picked);
   if (!n) {
-    box.append(el('p', 'empty', 'Select anything in the picture to see what it is and which settings change it.'));
+    box.append(el('p', 'empty', 'Select anything in the picture, a line included, to see what it is and which settings change it.'));
     return;
   }
   stage.mark([n.id], 'picked');
@@ -286,12 +313,15 @@ function renderInspector() {
     for (const f of n.info.facts) ul.append(el('li', null, f));
     box.append(ul);
   }
-  const keys = (n.info?.keys || []).filter(k => keyShown(keyById[k], state.cfg));
-  if (keys.length) {
-    const chips = el('div', 'chips');
-    keys.forEach(k => chips.append(keyChip(k)));
-    box.append(el('h4', null, 'Settings that change it'), chips);
-  }
+  keysBlock(box, n.info?.keys || []);
+}
+
+function keysBlock(box, ids) {
+  const keys = ids.filter(k => keyShown(keyById[k], state.cfg));
+  if (!keys.length) return;
+  const chips = el('div', 'chips');
+  keys.forEach(k => chips.append(keyChip(k)));
+  box.append(el('h4', null, 'Settings that change it'), chips);
 }
 
 // ---- stage: fit, zoom, pan, follow -----------------------------------------
@@ -314,6 +344,8 @@ $('#zoom-in').addEventListener('click', () => { state.fit = false; setScale(stag
 $('#zoom-out').addEventListener('click', () => { state.fit = false; setScale(stage.scale / 1.25); });
 $('#zoom-fit').addEventListener('click', fit);
 wrap.addEventListener('wheel', ev => {
+  // Shift turns a vertical wheel sideways, where the browser does not already.
+  if (ev.shiftKey && !ev.ctrlKey && !ev.deltaX && ev.deltaY) { ev.preventDefault(); wrap.scrollLeft += ev.deltaY; return; }
   if (!ev.ctrlKey) return;
   ev.preventDefault();
   state.fit = false;

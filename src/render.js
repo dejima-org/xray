@@ -7,9 +7,10 @@ const SVG = 'http://www.w3.org/2000/svg';
 const reduced = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 export class Stage {
-  constructor(world, onPick) {
+  constructor(world, onPick, onPickLine) {
     this.world = world;
     this.onPick = onPick;
+    this.onPickLine = onPickLine;
     this.els = new Map();
     this.nodes = new Map();
     this.scale = 1;
@@ -150,21 +151,49 @@ export class Stage {
     const el = this.els.get(id);
     if (!el) return null;
     const w = this.world.getBoundingClientRect();
-    const target = el.dataset.box === '1' ? el.querySelector(':scope > .n-head') : el;
+    const target = el.dataset.box === '1' ? el.querySelector(':scope > .n-head .n-label') : el;
     const r = target.getBoundingClientRect();
     return [(r.left + r.width / 2 - w.left) / this.scale, (r.top + r.height / 2 - w.top) / this.scale];
   }
 
+  // Where a line meets a node: on its outline, towards `toward`, pulled a
+  // little inside so it is plain which box the end belongs to.
   edgePoint(id, toward) {
     const el = this.els.get(id);
     const w = this.world.getBoundingClientRect();
     const r = el.getBoundingClientRect();
     const cx = (r.left + r.width / 2 - w.left) / this.scale;
     const cy = (r.top + r.height / 2 - w.top) / this.scale;
-    const hw = r.width / 2 / this.scale, hh = r.height / 2 / this.scale;
+    const hw = Math.max(1, r.width / 2 / this.scale - 6), hh = Math.max(1, r.height / 2 / this.scale - 6);
     const dx = toward[0] - cx, dy = toward[1] - cy;
     if (Math.abs(dx) * hh > Math.abs(dy) * hw) return [cx + Math.sign(dx) * hw, cy + dy * hw / Math.abs(dx || 1)];
     return [cx + dx * hh / Math.abs(dy || 1), cy + Math.sign(dy) * hh];
+  }
+
+  // A visible line, a dot at each end, and a wider invisible stroke that
+  // takes the click.
+  line(parent, d, cls, ends, onClick) {
+    const p = document.createElementNS(SVG, 'path');
+    p.setAttribute('d', d);
+    p.setAttribute('class', cls);
+    parent.append(p);
+    for (const [x, y] of ends) {
+      const dot = document.createElementNS(SVG, 'circle');
+      dot.setAttribute('cx', x); dot.setAttribute('cy', y); dot.setAttribute('r', 3.5);
+      dot.setAttribute('class', `anchor ${cls}`);
+      parent.append(dot);
+    }
+    const hit = document.createElementNS(SVG, 'path');
+    hit.setAttribute('d', d);
+    hit.setAttribute('class', 'hit');
+    hit.addEventListener('click', ev => {
+      ev.stopPropagation();
+      for (const h of this.svg.querySelectorAll('.picked-line')) h.classList.remove('picked-line');
+      parent.classList.add('picked-line');
+      onClick();
+    });
+    parent.append(hit);
+    return p;
   }
 
   drawLinks() {
@@ -173,12 +202,13 @@ export class Stage {
       const a0 = this.point(l.from), b0 = this.point(l.to);
       if (!a0 || !b0) continue;
       const a = this.edgePoint(l.from, b0), b = this.edgePoint(l.to, a0);
-      const p = document.createElementNS(SVG, 'path');
+      const g = document.createElementNS(SVG, 'g');
+      g.dataset.ends = `${l.from} ${l.to}`;
+      g.setAttribute('class', 'link-g');
       const mx = (a[0] + b[0]) / 2;
-      p.setAttribute('d', `M${a[0]},${a[1]} C${mx},${a[1]} ${mx},${b[1]} ${b[0]},${b[1]}`);
-      p.setAttribute('class', `link l-${l.kind}`);
-      p.dataset.ends = `${l.from} ${l.to}`;
-      this.links.append(p);
+      this.line(g, `M${a[0]},${a[1]} C${mx},${a[1]} ${mx},${b[1]} ${b[0]},${b[1]}`, `link l-${l.kind}`, [a, b],
+        () => this.onPickLine({ kind: 'link', link: l }));
+      this.links.append(g);
     }
     this.svg.animate?.([{ opacity: 0.2 }, { opacity: 1 }], { duration: 200 });
   }
@@ -188,23 +218,28 @@ export class Stage {
   // Draw one step: its line fades in whole, arrowed towards where it ends,
   // with the step's title beside the end. `instant` draws it already dimmed,
   // for steps passed. Resolves once it has been on screen long enough to read.
-  travel(ids, verdict, speed = 1, { instant = false, title = '' } = {}) {
+  travel(ids, verdict, speed = 1, { instant = false, title = '', step = null } = {}) {
     const pts = ids.map(id => this.point(id)).filter(Boolean);
     if (!pts.length) return Promise.resolve();
     for (const t of this.trails.children) t.classList.add('old');
-    const end = pts[pts.length - 1];
     const g = document.createElementNS(SVG, 'g');
     g.setAttribute('class', `step-mark v-${verdict}`);
     this.trails.append(g);
     let path = null;
+    let end = pts[pts.length - 1];
+    const pick = () => step && this.onPickLine({ kind: 'step', step });
     if (pts.length > 1) {
-      path = document.createElementNS(SVG, 'path');
-      path.setAttribute('d', smooth(pts));
-      path.setAttribute('class', `trail v-${verdict}`);
+      // A leaf's line starts and stops at its outline; a box's at its label.
+      const first = this.els.get(ids[0])?.dataset.box === '1' ? pts[0] : this.edgePoint(ids[0], pts[1]);
+      const lastId = ids[ids.length - 1];
+      if (this.els.get(lastId)?.dataset.box !== '1') end = this.edgePoint(lastId, pts[pts.length - 2]);
+      const p2 = [first, ...pts.slice(1, -1), end];
+      path = this.line(g, smooth(p2), `trail v-${verdict}`, [first], pick);
       path.setAttribute('marker-end', `url(#arrow-${verdict})`);
-      g.append(path);
     }
-    g.append(this.burst(end, verdict));
+    const b = this.burst(end, verdict);
+    b.addEventListener('click', ev => { ev.stopPropagation(); pick(); });
+    g.append(b);
     if (instant) { g.classList.add('old'); return Promise.resolve(); }
     if (title) this.captionAt(title, verdict, path, end);
     if (!reduced()) g.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 380, easing: 'ease-out' });
