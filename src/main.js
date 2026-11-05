@@ -110,8 +110,8 @@ function keyRow(k, c, e) {
     const on = k.multi ? c[k.id].includes(o.v) : c[k.id] === o.v;
     b.setAttribute(k.multi ? 'aria-pressed' : 'aria-checked', String(on));
     if (!k.multi) b.setAttribute('role', 'radio');
-    if (o.label) b.title = o.v;
-    if (o.v.length > 14 && !o.label) b.classList.add('long');
+    if (o.label && o.v !== 'set') b.title = o.v;
+    if ((o.label && o.v !== 'set' ? o.v : o.label || o.v).length > 14 && !(o.label && o.v !== 'set')) b.classList.add('long');
     b.addEventListener('click', () => {
       if (k.multi) c[k.id] = on ? c[k.id].filter(v => v !== o.v) : [...c[k.id], o.v];
       else c[k.id] = o.v;
@@ -282,8 +282,8 @@ function pickLine(line) {
   if (i >= 0 && i !== state.step) play(state.scenario, i, false);
 }
 
-const VERDICT = { ok: 'Allowed', refused: 'Refused', warn: 'Allowed, and worth worrying about', info: 'What happens here' };
-const LINK = { rw: 'Mounted, writable', ro: 'Mounted, read-only', socket: 'A unix socket', reads: 'Read on the host', warn: 'Mounted, and worth worrying about' };
+const VERDICT = { ok: 'Allowed', refused: 'Refused', warn: 'Allowed, with a caveat', info: 'What happens here' };
+const LINK = { rw: 'Mounted, writable', ro: 'Mounted, read-only', socket: 'A unix socket', reads: 'Read on the host', warn: 'Mounted, with a caveat' };
 
 function renderInspector() {
   const box = $('#inspector');

@@ -80,7 +80,7 @@ test('a refused packet never reaches its destination', () => {
 
 test('dejima refusals match dejima\'s own checks', () => {
   const r = o => { const c = normalise(Object.assign(defaults(), o)); return derive(c).refused; };
-  const cline = { harness: 'cline', cline_model: 'example-model' };
+  const cline = { harness: 'cline', cline_model: 'set' };
   assert.equal(r({}).length, 0);
   // provider checks come first
   assert.match(r({ workflow: 'branch-push' })[0], /nowhere to push/);
@@ -128,7 +128,7 @@ test('the forwarded names match the policy', () => {
   assert.equal(n({}).length, 7, 'built-ins, api.github.com, and platform.claude.com');
   assert.ok(n({}).includes('api.github.com'));
   assert.deepEqual(n({ drop: 'on' }), ['platform.claude.com']);
-  assert.equal(n({ harness: 'cline', cline_model: 'x', drop: 'on' }).length, 0);
+  assert.equal(n({ harness: 'cline', cline_model: 'set', drop: 'on' }).length, 0);
 });
 
 test('blocked branches come from the workflow, not from having a push host', () => {

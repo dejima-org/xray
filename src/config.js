@@ -27,8 +27,8 @@ export const KEYS = [
     def: 'anthropic',
     effect: 'Where the model is. Proxied backends keep the credential on the host; self-hosted has none to keep. cline has no default; claude-code gets anthropic written in once. openrouter is drawn with its credential_file set.' },
   { id: 'cline_model', project: 'dejima', group: 'Agent', where: '~/.config/dejima/config', key: '[harness.cline] model',
-    opts: [{ v: 'unset' }, { v: 'example-model' }], def: 'unset', show: c => c.harness === 'cline',
-    effect: 'No default, on purpose: unset, dejima refuses to launch cline at all.' },
+    opts: c => [{ v: 'unset' }, { v: 'set', label: modelExample(c.backend) }], def: 'unset', show: c => c.harness === 'cline',
+    effect: 'Required. Without one, cline would quietly run a default of its own (claude-haiku-5-5 on Anthropic, gpt-4o on an OpenAI-compatible endpoint, as of cline 3.0.74), so dejima refuses instead.' },
   { id: 'base_url', project: 'dejima', group: 'Agent', where: '~/.config/dejima/config', key: '[backend.self-hosted] base_url',
     opts: [{ v: 'http://10.0.0.10:11434', label: 'an address' }, { v: 'http://llm.example.lan:11434', label: 'a name' }],
     def: 'http://10.0.0.10:11434', show: c => c.backend === 'self-hosted',
@@ -160,6 +160,12 @@ export const KEYS = [
     effect: 'Overrides the launcher default, which falls back to dejima\'s [core] harness.' },
 ];
 
+// An id each backend would accept, for the picture to show. The Anthropic one
+// is what dejima's own refusal suggests; the hosted one is the docs' example.
+export function modelExample(backend) {
+  return { openrouter: 'z-ai/glm-5.3', 'self-hosted': 'qwen3-coder' }[backend] || 'claude-haiku-4-5-20251001';
+}
+
 export const keyById = Object.fromEntries(KEYS.map(k => [k.id, k]));
 
 export function keyName(k, c) { return typeof k.key === 'function' ? k.key(c) : k.key; }
@@ -264,7 +270,7 @@ export function refusal(e) {
   if (e.pushes && e.forge === 'none')
     return `[core] workflow = ${e.workflow} pushes, and [core] forge = none gives it nowhere to push.`;
   if (e.harness === 'cline') {
-    if (e.cline_model === 'unset') return 'harness.cline: no model is configured. Cline has no default worth dejima choosing for you. Set [harness.cline] model.';
+    if (e.cline_model === 'unset') return `harness.cline: no model is configured. Cline has no default worth dejima choosing for you, and any id shipped here would go stale with the next Cline release. Set one: [harness.cline] model = ${e.backend === 'anthropic' || e.backend === 'anthropic-api-key' || e.backend === 'unset' ? 'claude-haiku-4-5-20251001' : modelExample(e.backend)}. \`cline auth\` outside the sandbox lists what your backend offers.`;
     if (e.backend === 'unset') return 'harness.cline: no [harness.cline] backend is set, so nothing says where the model is. There is deliberately no default.';
     if (!e.selfHosted) {
       if (e.proxy === 'off') return 'harness.cline: the proxy is off for this backend, and cline has no way to reach a proxied backend without it. Only claude-code can run with the real credential mounted.';

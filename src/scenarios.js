@@ -2,7 +2,7 @@
 // along `path` (node ids) and ends with a verdict:
 //   ok       allowed, delivered
 //   refused  stopped at the last node of the path
-//   warn     delivered, and it should worry you
+//   warn     delivered, with a caveat worth knowing
 //   info     a fact about this moment, nothing moves through a wall
 // `gone` fades nodes for the rest of the run; `kept` marks what survives.
 import { effective, normalise, refusals, notes } from './config.js';
