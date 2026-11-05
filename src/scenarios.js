@@ -49,7 +49,7 @@ export function scenarios(cfg, d) {
           'A self-hosted base_url name is permitted and internal-exempt automatically, so its private answer is accepted. It also means the resolver keeps an upstream.', ['base_url'])
       : step(['s-harness', 'g-nft'], fw ? 'ok' : 'warn', '10.0.0.10 is permitted by address',
           'An IPv4 base_url goes straight into the literal set. No DNS, so no answer to check, and internal_domains does not apply.', ['base_url']),
-    step(['s-harness', 'g-nft', 'bridge', ...nodeFw, 'lan-llm'], dv ? 'refused' : 'ok', dv ? 'The node firewall drops it' : 'Straight to the model',
+    step(['s-harness', 'g-nft', 'bridge', ...(dv ? ['fw-devbox'] : ['lan-llm'])], dv ? 'refused' : 'ok', dv ? 'The node firewall drops it' : 'Straight to the model',
       dv ? 'dejima allows it, but the devbox may only reach the forge and the resolver on the LAN. Rules 7-9 drop 10/8. A LAN model needs its own pinhole above the DROPs.'
         : 'No credential exists, so there is no proxy and no placeholder. The request crosses nftables like any other permitted connection.', ['backend']),
   ] : e.proxy === 'off' ? [
@@ -107,7 +107,7 @@ export function scenarios(cfg, d) {
   const wikiPermitted = e.allowed.includes('wiki.example.lan') && e.isolated !== 'on';
   const wikiExempt = e.internal === 'wiki.example.lan';
   add('dejima', 'internal', 'Reach an internal service', guard(!fw ? [
-    step(['s-harness', 'bridge', ...nodeFw, 'lan-wiki'], dv ? 'refused' : 'warn', dv ? 'The node firewall drops it' : 'Delivered',
+    step(['s-harness', 'bridge', ...(dv ? ['fw-devbox'] : ['lan-wiki'])], dv ? 'refused' : 'warn', dv ? 'The node firewall drops it' : 'Delivered',
       dv ? 'Even with dejima\'s filter off, rules 7-9 on the node drop 10/8.' : 'With the firewall off, the session has the laptop\'s LAN reach.', ['firewall']),
   ] : [
     step(['s-harness', 's-dns'], wikiPermitted ? 'ok' : 'refused', 'Look up wiki.example.lan',
@@ -116,7 +116,7 @@ export function scenarios(cfg, d) {
       wikiExempt ? 'internal_domains exempts it, so the private answer is accepted and the address goes into internal_ok_v4.'
         : 'A private address for a non-exempt name looks like DNS rebinding. dnsmasq refuses the answer, and nftables would refuse the connection too. Add the name to [core] internal_domains to allow it.',
       ['internal']),
-    wikiPermitted && wikiExempt && step(['s-harness', 'g-nft', 'bridge', ...nodeFw, 'lan-wiki'], dv ? 'refused' : 'ok', dv ? 'dejima allows it; the node does not' : 'Connect',
+    wikiPermitted && wikiExempt && step(['s-harness', 'g-nft', 'bridge', ...(dv ? ['fw-devbox'] : ['lan-wiki'])], dv ? 'refused' : 'ok', dv ? 'dejima allows it; the node does not' : 'Connect',
       dv ? 'Rules 7-9 drop 10/8 on the Proxmox node, outside the guest. Only the forge, the resolver, and ntfy are pinholed. The drop is logged.' : 'Accepted.', ['internal']),
   ]));
 
@@ -175,7 +175,7 @@ export function scenarios(cfg, d) {
     if (cfg.ra_ntfy !== 'unset') add('remote', 'ra-notify', 'Get a push when it finishes', guard([
       step(['s-harness', 'm-notify', 'p-notify'], 'ok', 'The Stop hook writes a marker',
         e.harness === 'claude-code' ? 'An empty file named done. That is all the session can say: the push never carries what it wants.' : 'Cline hosts no hooks, so it never writes one: no push for this harness.', ['harness']),
-      e.harness === 'claude-code' && step(['p-notify', ...nodeFw, 'lan-ntfy'], dv && cfg.dv_6b === 'off' ? 'refused' : 'ok', 'POST to ntfy',
+      e.harness === 'claude-code' && step(['p-notify', ...(dv ? ['fw-devbox'] : []), ...(dv && cfg.dv_6b === 'off' ? [] : ['lan-ntfy'])], dv && cfg.dv_6b === 'off' ? 'refused' : 'ok', 'POST to ntfy',
         dv ? (cfg.dv_6b === 'off' ? 'notify-watch runs on the VM, so its post is LAN traffic: rules 7-9 drop it. Silently.' : 'Rule 6b opens tcp/8443 to the ntfy-only listener, above the DROPs.')
           : 'From the host, outside the container\'s allowlist.', ['ra_ntfy', 'dv_6b']),
       e.harness === 'claude-code' && !(dv && cfg.dv_6b === 'off') && step(['lan-ntfy', 'ph-ntfy'], 'ok', '"dejima: proj finished"',

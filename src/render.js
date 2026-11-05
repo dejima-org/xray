@@ -165,6 +165,7 @@ export class Stage {
       const mx = (a[0] + b[0]) / 2;
       p.setAttribute('d', `M${a[0]},${a[1]} C${mx},${a[1]} ${mx},${b[1]} ${b[0]},${b[1]}`);
       p.setAttribute('class', `link l-${l.kind}`);
+      p.dataset.ends = `${l.from} ${l.to}`;
       this.links.append(p);
     }
     this.svg.animate?.([{ opacity: 0.2 }, { opacity: 1 }], { duration: 200 });
@@ -177,6 +178,7 @@ export class Stage {
     const pts = ids.map(id => this.point(id)).filter(Boolean);
     if (!pts.length) return Promise.resolve();
     const cls = `v-${verdict}`;
+    for (const t of this.trails.children) t.classList.add('old');
     if (pts.length === 1) { this.burst(pts[0], verdict); return wait(500 / speed); }
     const path = document.createElementNS(SVG, 'path');
     path.setAttribute('d', smooth(pts));
@@ -229,6 +231,11 @@ export class Stage {
   mark(ids, cls) {
     for (const el of this.world.querySelectorAll(`.${cls}`)) el.classList.remove(cls);
     for (const id of ids) this.els.get(id)?.classList.add(cls);
+    if (cls !== 'gone') return;
+    for (const p of this.links.children) {
+      const ends = p.dataset.ends.split(' ').map(id => this.els.get(id));
+      p.classList.toggle('gone', ends.some(e => e?.closest('.gone')));
+    }
   }
 
   bounds(ids) {

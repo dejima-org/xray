@@ -67,6 +67,17 @@ test('every refusal and every step explains itself', () => {
   }
 });
 
+test('a refused packet never reaches its destination', () => {
+  for (const c of all) {
+    const d = derive(c);
+    for (const s of scenarios(c, d)) for (const st of s.steps) {
+      if (st.verdict !== 'refused') continue;
+      const last = st.path[st.path.length - 1];
+      assert.ok(!/^(lan|net)-/.test(last), `${s.id} "${st.title}" ends at ${last}`);
+    }
+  }
+});
+
 test('dejima refusals match the docs', () => {
   const r = o => { const c = normalise(Object.assign(defaults(), o)); return derive(c).refused; };
   assert.equal(r({}).length, 0);

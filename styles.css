@@ -290,7 +290,7 @@ h2, h3, h4 { font-weight: 500; margin: 0; }
 .k-gate .n-label { color: var(--ok); }
 .k-gate.t-bad { border-color: var(--refused); background: color-mix(in srgb, var(--refused) 10%, var(--bg-well)); }
 .k-gate.t-bad .n-label { color: var(--refused); }
-.on-wall { position: absolute; top: -14px; right: 18px; z-index: 2; padding: 3px 9px 4px; }
+.on-wall { position: absolute; top: -14px; left: 50%; translate: -50% 0; z-index: 2; padding: 3px 9px 4px; }
 .on-wall .n-sub { display: none; }
 .t-bad:not(.k-gate) { border-color: var(--refused); }
 .t-bad .n-sub { color: var(--refused); }
@@ -359,17 +359,18 @@ h2, h3, h4 { font-weight: 500; margin: 0; }
 .burst.v-warn circle { stroke: var(--warn); }
 .burst.v-info circle { stroke: var(--info); }
 .burst { animation: pop .35s ease-out; }
+.link.gone { opacity: .06; }
+.wires .old { opacity: .22; transition: opacity .3s; }
 @keyframes pop { from { opacity: 0; } to { opacity: 1; } }
 
 /* --- small screens: picture on top, one panel below ------------------- */
 @media (max-width: 1100px) {
-  body { overflow: auto; }
-  .app { height: auto; grid-template-columns: minmax(0, 1fr); grid-template-areas: "stage" "tabs" "panel"; }
-  .stage { height: 58vh; height: 58dvh; border-bottom: 1px solid var(--rule); }
+  /* The picture stays put; the panel under it scrolls on its own. */
+  .app { height: calc(100dvh - var(--bar-h)); grid-template-columns: minmax(0, 1fr); grid-template-rows: 52% auto minmax(0, 1fr); grid-template-areas: "stage" "tabs" "panel"; }
+  .stage { border-bottom: 1px solid var(--rule); }
   .rail, .side { grid-area: panel; border: 0; }
-  .panel-body { height: auto; overflow: visible; }
   body[data-tab="rail"] .side, body[data-tab="side"] .rail { display: none; }
-  .tabs { grid-area: tabs; display: flex; position: sticky; top: 0; z-index: 10; background: var(--bg-well); border-bottom: 1px solid var(--rule); }
+  .tabs { grid-area: tabs; display: flex; background: var(--bg-well); border-bottom: 1px solid var(--rule); }
   .tabs button { flex: 1; text-align: center; padding: .7rem; color: var(--fg-dim); border-bottom: 2px solid transparent; }
   .tabs [aria-selected="true"] { color: var(--fg); border-bottom-color: var(--accent); }
   .bar-title { font-size: .85rem; }

@@ -57,7 +57,7 @@ export function derive(cfg) {
         ['firewall', 'ghpush', 'internal'],
         ['IPv6 is refused by the first rule.', 'Host addresses (the gateway and every address the host answers on) are open on no port by default.',
           'An answer for a non-exempt name that points at a private address is refused here as well as in dnsmasq.']) }),
-    fw && leaf('s-dns', 'svc', 'dnsmasq 127.0.0.1:53', { sub: sealed ? 'no upstream: sealed' : `${names.length} names forwarded`, tone: sealed ? 'ok' : undefined,
+    fw && leaf('s-dns', 'svc', 'dnsmasq 127.0.0.1:53', { sub: sealed ? 'no upstream: sealed' : `${names.length} name${names.length === 1 ? '' : 's'} forwarded`, tone: sealed ? 'ok' : undefined,
       info: info(sealed
         ? 'Sealed: no name is permitted, so dnsmasq has no server= lines and the ruleset has no upstream rule at all.'
         : 'The only resolver the session has. A permitted name is forwarded; anything else is answered locally and never leaves.',
