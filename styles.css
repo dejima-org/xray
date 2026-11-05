@@ -37,6 +37,8 @@
   --wall: var(--gb-bg3);
   /* The wordmark's orange, marking what is dejima's own. */
   --brand: var(--gb-orange);
+  /* The agent: what every wall here is arranged around. */
+  --agent: #d3869b;
 
   --font-head: "Jost", "Futura", "Century Gothic", system-ui, sans-serif;
   --font-body: "IBM Plex Serif", Georgia, serif;
@@ -233,6 +235,7 @@ h2, h3, h4 { font-weight: 500; margin: 0; }
 .legend dd { margin: 0; }
 .sw { width: .9rem; height: .3rem; border-radius: 2px; }
 .sw-ours, .sw-sys, .sw-ext { width: .8rem; height: .6rem; border-radius: 2px; border: 1px solid var(--rule-strong); }
+.sw-agent { width: .7rem; height: .7rem; border-radius: 50%; background: var(--agent); }
 .sw-ours { background: color-mix(in srgb, var(--brand) 18%, var(--bg-raise)); border-color: var(--brand); }
 .sw-sys { background: var(--bg-raise); }
 .sw-ext { border-style: dashed; }
@@ -365,6 +368,16 @@ h2, h3, h4 { font-weight: 500; margin: 0; }
   background: var(--brand); border-radius: 1px;
 }
 .box.o-ours > .n-head .n-label { color: var(--fg); }
+.o-agent.leaf {
+  background: color-mix(in srgb, var(--agent) 16%, var(--bg-raise));
+  border-color: var(--agent); border-left-width: 3px;
+}
+.o-agent.leaf .n-label { color: var(--fg); }
+.o-agent > .n-label::before {
+  content: ""; display: inline-block; width: 7px; height: 7px; margin-right: 6px; vertical-align: 1px;
+  background: var(--agent); border-radius: 50%;
+}
+.o-agent.leaf .n-sub { color: color-mix(in srgb, var(--agent) 70%, var(--fg-dim)); }
 
 /* scenario state */
 .lit:not(.box) { border-color: var(--fg); box-shadow: 0 0 0 3px color-mix(in srgb, var(--fg) 28%, transparent); }
