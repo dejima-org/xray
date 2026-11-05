@@ -189,7 +189,7 @@ export function derive(cfg) {
         info: info('Writable, so a change here outlives the session and runs again as you.', []) }),
     ]),
     box('host-procs', 'group', 'processes', [
-      leaf('s-harness', 'proc', e.harness, { sub: 'as you, with your reach', tone: 'warn',
+      leaf('s-harness', 'proc', e.harness, { sub: 'as you, with your reach',
         info: info('The same agent with the same autonomy, run straight on the machine: every command it runs is yours, with your files, your keys, and your network. Approving each action by hand is the check that is left, and an approved command can do more than it says.', ['harness']) }),
       ...procs.filter(x => x && ['p-audit', 'p-guardshell'].includes(x.id)),
     ]),
@@ -333,8 +333,10 @@ export function derive(cfg) {
 const OURS = new Set(['docker', 'dn-docker', 'netns', 'c-filter', 'g-nft', 's-dns', 's-logs', 'c-session', 's-term', 's-guards', 'c-dn',
   'f-stores', 'p-launcher', 'p-proxy', 'p-shipper', 'p-notify', 'p-attach', 'p-dn-launch', 'p-dn-api', 'p-dn-web', 'mb-bot',
   'p-audit', 'p-guardshell', 'fw-devbox', 'fw-ci-c', 'fw-ci-p', 'ci-timer', 'ci-dns', 'ci-fwd', 'pve-cron', 'gd-cycle', 'gd-baseline']);
+// The agent is its own kind: the thing everything else is arranged around.
+const AGENT = new Set(['s-harness', 'dn-harness']);
 function markOwners(n) {
-  n.own = OURS.has(n.id) ? 'ours' : /^(net|lan|ph)-|^(internet|lan)$/.test(n.id) ? 'ext' : 'sys';
+  n.own = AGENT.has(n.id) ? 'agent' : OURS.has(n.id) ? 'ours' : /^(net|lan|ph)-|^(internet|lan)$/.test(n.id) ? 'ext' : 'sys';
   for (const c of n.children || []) markOwners(c);
 }
 
