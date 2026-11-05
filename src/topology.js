@@ -82,7 +82,8 @@ export function derive(cfg) {
     e.agent && leaf('m-agent', 'mount', '/ssh-agent', { sub: 'your forwarded agent', tone: 'warn',
       info: info('A pushing workflow with no session key mounts your SSH agent. The session cannot read your keys, but it can sign with any of them.', ['ssh_key', 'workflow']) }),
     e.ssh_key !== 'unset' && leaf('m-key', 'mount', 'session key', { sub: 'root-only, loaded then deleted',
-      info: info('[identity.default] ssh_key is mounted for root, loaded into a container-local agent, and the copy deleted before the harness starts. Setting it withdraws the forwarded agent.', ['ssh_key']) }),
+      info: info('[identity.default] ssh_key is mounted for root, loaded into a container-local agent, and the copy deleted before the harness starts. Setting it withdraws the forwarded agent.', ['ssh_key'],
+        ['Loaded whatever the workflow: under local-only too, the session holds a key it can use on port 22 to any destination it may reach on that port.']) }),
     on.remote && leaf('m-notify', 'mount', '/run/dejima-notify', { sub: 'rw, empty markers',
       info: info('The session\'s only remote-access surface: a hook writes an empty done or waiting file here.', ['ra_ntfy']) }),
   ];

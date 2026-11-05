@@ -117,6 +117,8 @@ test('dejima refusals match dejima\'s own checks', () => {
   assert.equal(r({ ...byName, allowed: ['llm.example.lan'] }).length, 0, 'the base_url host is exempt');
   assert.equal(r({ forge: 'gitea' }).length, 0, 'the forge is exempt');
   assert.equal(r({ global: ['wiki.example.lan'], drop: 'on' }).length, 0, '--drop-domains drops global approvals');
+  // cline has no default backend either
+  assert.match(r({ ...cline, backend: 'unset' })[0], /no \[harness.cline\] backend/);
   // only the first refusal is ever printed
   assert.equal(r({ sealed: 'on', internal: 'wiki.example.lan' }).length, 1);
 });
@@ -127,6 +129,14 @@ test('the forwarded names match the policy', () => {
   assert.ok(n({}).includes('api.github.com'));
   assert.deepEqual(n({ drop: 'on' }), ['platform.claude.com']);
   assert.equal(n({ harness: 'cline', cline_model: 'x', drop: 'on' }).length, 0);
+});
+
+test('blocked branches come from the workflow, not from having a push host', () => {
+  const steps = o => { const c = normalise(Object.assign(defaults(), o)); const d = derive(c); return scenarios(c, d).find(s => s.id === 'push').steps; };
+  const main = o => steps(o).find(st => st.title === 'git push origin main');
+  assert.equal(main({ ghpush: 'on' }).verdict, 'warn', 'local-only blocks no branch, so --allow-github-push lets main through');
+  assert.equal(main({ workflow: 'branch-push', forge: 'gitea' }).verdict, 'refused');
+  assert.ok(steps({ forge: 'gitea' }).some(st => /merge/.test(st.title)), 'local-only still blocks merges');
 });
 
 test('devbox-hardener moves dejima onto the Proxmox node', () => {

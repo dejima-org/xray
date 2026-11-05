@@ -22,10 +22,10 @@ export const KEYS = [
   { id: 'backend', project: 'dejima', group: 'Agent', where: '~/.config/dejima/config',
     key: c => `[harness.${c.harness}] backend`,
     opts: c => (c.harness === 'cline'
-      ? ['anthropic', 'anthropic-api-key', 'openrouter', 'self-hosted']
+      ? ['unset', 'anthropic', 'anthropic-api-key', 'openrouter', 'self-hosted']
       : ['anthropic', 'anthropic-api-key']).map(v => ({ v })),
     def: 'anthropic',
-    effect: 'Where the model is. Proxied backends keep the credential on the host; self-hosted has none to keep. openrouter is drawn with its credential_file set.' },
+    effect: 'Where the model is. Proxied backends keep the credential on the host; self-hosted has none to keep. cline has no default; claude-code gets anthropic written in once. openrouter is drawn with its credential_file set.' },
   { id: 'cline_model', project: 'dejima', group: 'Agent', where: '~/.config/dejima/config', key: '[harness.cline] model',
     opts: [{ v: 'unset' }, { v: 'example-model' }], def: 'unset', show: c => c.harness === 'cline',
     effect: 'No default, on purpose: unset, dejima refuses to launch cline at all.' },
@@ -204,10 +204,13 @@ export function effective(c) {
   if (e.loki === 'unset') e.conversation = 'off';
   e.selfHosted = e.backend === 'self-hosted';
   e.proxied = !e.selfHosted && e.proxy === 'on';
-  e.apiHost = { anthropic: 'api.anthropic.com', 'anthropic-api-key': 'api.anthropic.com',
+  e.apiHost = { unset: 'api.anthropic.com', anthropic: 'api.anthropic.com', 'anthropic-api-key': 'api.anthropic.com',
     openrouter: 'openrouter.ai', 'self-hosted': e.base_url.includes('llm.') ? 'llm.example.lan' : '10.0.0.10' }[e.backend];
   e.llmByName = e.selfHosted && e.base_url.includes('llm.');
   e.pushes = e.workflow !== 'local-only';
+  // From the workflow, not from whether anything may be pushed to: local-only
+  // blocks none, and --allow-github-push can still give it a push host.
+  e.blocked = e.pushes ? ['main', 'master'] : [];
   // Where a push may go, and what signs it.
   e.pushHosts = [...(e.pushes && e.forge === 'gitea' ? ['git.example.lan'] : []),
     ...((e.pushes && e.forge === 'github') || e.ghpush === 'on' ? ['github.com'] : [])];
@@ -262,6 +265,7 @@ export function refusal(e) {
     return `[core] workflow = ${e.workflow} pushes, and [core] forge = none gives it nowhere to push.`;
   if (e.harness === 'cline') {
     if (e.cline_model === 'unset') return 'harness.cline: no model is configured. Cline has no default worth dejima choosing for you. Set [harness.cline] model.';
+    if (e.backend === 'unset') return 'harness.cline: no [harness.cline] backend is set, so nothing says where the model is. There is deliberately no default.';
     if (!e.selfHosted) {
       if (e.proxy === 'off') return 'harness.cline: the proxy is off for this backend, and cline has no way to reach a proxied backend without it. Only claude-code can run with the real credential mounted.';
       if (e.transport === 'loopback') return 'harness.cline: [credentials] transport is loopback, and cline has no way to reach a proxied backend without the TLS terminator.';
@@ -280,7 +284,7 @@ export function refusal(e) {
     const x = exempt(e);
     const bad = p.filter(n => PRIVATE.includes(n) && !x.has(n));
     if (bad.length)
-      return `The filter's self-check (check 7): these permitted names are answered with an address inside a private network, and this policy refuses such answers: ${bad.join(', ')}. List them in [core] internal_domains if pointing inside is intended, or remove them.`;
+      return `The egress control for this session stopped before it was ready. The filter said: check 7: these permitted names are answered with an address inside a private network, and this policy refuses such answers: ${bad.map(n => `${n} (open/strict)`).join(' ')}. That is this configuration disagreeing with itself - list them in [core] internal_domains (or --internal-domain, for one launch) if pointing inside is intended, or remove them.`;
   }
   if (e.sealed === 'on' && p.length) return `--require-sealed: the session is not sealed. Still permitted: ${p.join(', ')}.`;
   return null;

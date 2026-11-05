@@ -132,7 +132,7 @@ export function scenarios(cfg, d) {
   add('dejima', 'files', 'Read and write files', guard([
     step(['s-harness', 'm-project', 'f-project'], 'ok', `Write ${e.isolated === 'on' ? '/dejima/work' : 'the project'}`,
       e.isolated === 'on' ? 'A volume that is removed when the session closes.' : 'This is the work: it lands in your directory and stays.', ['isolated']),
-    e.isolated !== 'on' && step(['s-harness', 'm-project'], 'refused', 'Write .git/hooks/pre-commit', '.git/hooks is mounted read-only over the project, so a hook the agent writes never runs on your next commit.', []),
+    e.isolated !== 'on' && step(['s-harness', 'm-project'], 'refused', 'Write .git/hooks/pre-commit', '.git/hooks is mounted read-only over the project, so a hook planted there never runs. core.hooksPath in .git/config is still writable; the exit-time audit reports a change to it, after the session.', []),
     step(['s-harness', 'm-share', 'f-share'], 'ok', 'Leave something in ~/shared', e.isolated === 'on' ? 'A fresh share for this session only.' : 'Every session on this project sees the same directory.', ['isolated']),
     e.ro !== 'unset' && step(['s-harness', 'm-ro'], 'refused', `Write to ${e.ro}`, 'Read-only mount: reads work, writes fail with EROFS.', ['ro']),
     e.rw !== 'unset' && step(['s-harness', 'm-rw', 'f-rw'], 'ok', `Write to ${e.rw}`, 'Shared by every project that mounts it.', ['rw']),
@@ -142,21 +142,26 @@ export function scenarios(cfg, d) {
   ]));
 
   // Push
-  const viaGuard = cline ? ' Under cline this is only the git wrapper on PATH: /usr/bin/git steps around it and no hook catches that, so what really stops the push is no route and no credential.' : '';
   const signer = e.ssh_key !== 'unset' ? 'Signed with the session key.' : e.agent ? 'Signed through your forwarded agent at /ssh-agent.' : '';
   const toForge = e.forge === 'github' || !e.pushes
     ? step(['s-guards', 'g-nft', ...out('net-github')], e.ssh_key === 'unset' && !e.agent ? 'warn' : 'ok', 'Port 22 to GitHub',
       `${e.pushes ? 'forge = github with a pushing workflow' : '--allow-github-push'} opens 22 to GitHub's ranges. ${e.ssh_key === 'unset' && !e.agent ? 'Under local-only no agent is forwarded and no ssh_key is set, so the network lets it through and GitHub refuses the login.' : signer}`, ['forge', 'ghpush', 'ssh_key'])
     : step(['s-guards', 'g-nft', 'bridge', ...nodeFw, 'lan-forge'], 'ok', 'To the forge', `The forge host is permitted and internal-exempt${dv ? '; node rule 4 lets the devbox reach it on 22' : ''}. ${signer}`, ['forge', 'ssh_key']);
+  const mergeStep = e.forge !== 'none' && step(['s-harness', 's-guards'], 'refused', e.forge === 'github' ? 'gh pr merge' : 'gitea-pr merge',
+    'Every workflow blocks merges, local-only included. The forge guard refuses it before the forge is asked; what really decides is the token\'s scope.', ['workflow']);
   const pushSteps = !e.pushHosts.length ? [
-    step(['s-harness', 's-guards'], 'refused', 'git push', `[core] workflow = local-only${e.overrides.workflow ? ` (${e.overrides.workflow})` : ''}: DEJIMA_PUSH_HOSTS is empty, so every push is refused.${viaGuard}`, ['workflow', 'ghpush']),
+    step(['s-harness', 's-guards'], 'refused', 'git push', `[core] workflow = local-only${e.overrides.workflow ? ` (${e.overrides.workflow})` : ''}: DEJIMA_PUSH_HOSTS is empty, so every push is refused.${cline ? ' Under cline this is only the git wrapper on PATH: /usr/bin/git steps around it and no hook catches that, so what really stops it is no SSH route and no credential GitHub will accept a write from.' : ''}`, ['workflow', 'ghpush']),
+    mergeStep,
   ] : [
-    step(['s-harness', 's-guards'], 'refused', 'git push origin main', `Refused: main and master are blocked branches.${viaGuard}`, ['workflow']),
+    e.blocked.length
+      ? step(['s-harness', 's-guards'], 'refused', 'git push origin main', `Refused: main and master are blocked branches.${cline ? ' Under cline this is only the git wrapper on PATH: /usr/bin/git steps around it and no hook catches that, so only the forge\'s own branch protection would refuse main.' : ''}`, ['workflow'])
+      : step(['s-harness', 's-guards', 'g-nft', ...out('net-github')], 'warn', 'git push origin main',
+        'Allowed. local-only blocks no branches because it never pushes, and --allow-github-push gives it a push host anyway, so the guard has no branch to refuse. Only GitHub\'s own branch protection stands in the way.', ['workflow', 'ghpush']),
     step(['s-harness', 's-guards'], 'ok', 'git push origin agent/fix-tests', `To ${e.pushHosts.join(' or ')}, a push host. Allowed.`, ['workflow', 'forge', 'ghpush']),
     toForge,
-    e.pushes && e.forge !== 'none' && step(['s-harness', 's-guards'], 'refused', e.forge === 'github' ? 'gh pr merge' : 'gitea-pr merge', 'Every workflow blocks merges. The forge guard refuses it before the forge is asked; what really decides is the token\'s scope.', ['workflow']),
+    mergeStep,
     on.ci && e.pushes && step([...(cfg.ci_tiers !== 'privileged' ? ['r1-1', 'fw-ci-c'] : ['cip-runner', 'fw-ci-p']), 'lan-forge'], 'warn', 'The push queues CI',
-      'A runner picks the job up on its next poll. Push access is code execution on whatever runner the repo reaches. That is what the CI hardener is for.', ['workflow']),
+      'A runner picks the job up when it next asks the forge for work. Push access is code execution on whatever runner the repo reaches. That is what the CI hardener is for.', ['workflow']),
   ];
   add('dejima', 'push', 'Push a branch', guard(pushSteps));
 
