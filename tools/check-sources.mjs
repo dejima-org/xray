@@ -16,7 +16,7 @@ const sources = JSON.parse(readFileSync(new URL('../sources.json', import.meta.u
 const refs = repo => execFileSync('git', ['ls-remote', '--refs', `${forge}${repo}.git`], { encoding: 'utf8', timeout: 60000, stdio: ['ignore', 'pipe', 'ignore'] })
   .trim().split('\n').map(l => l.split('\t')).map(([sha, ref]) => ({ sha, ref }));
 const released = list => list.filter(r => r.ref.startsWith('refs/tags/')).map(r => r.ref.slice(10))
-  .filter(t => /^v?\d+(\.\d+)+$/.test(t))
+  .filter(t => /^v?\d+(\.\d+)+[a-z]?$/.test(t))
   .sort((a, b) => a.replace(/^v/, '').localeCompare(b.replace(/^v/, ''), undefined, { numeric: true }));
 
 let behind = 0;
