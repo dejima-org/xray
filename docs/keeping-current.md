@@ -55,7 +55,7 @@ The snapshot must only ever hold rows someone checked. Regenerating it to make t
 
 ## 4. Tag it
 
-After the change merges, tag `main` with the dejima release it reflects, as `dejima-<release>` (for example `dejima-2026.11.04`). The picture as it was for any dejima release can then be found, even after it has moved on.
+After the change merges, tag `main` with the dejima release it reflects, as `dejima-<release>` (for example `dejima-2026.11.04`). The picture as it was for any dejima release can then be found, even after it has moved on. These tags stay on the forge: dejima's GitHub mirror publishes only tags named like a release, so the GitHub copy carries `main` alone.
 
 ## The verification prompt
 

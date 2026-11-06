@@ -86,7 +86,8 @@ h2, h3, h4 { font-weight: 500; margin: 0; }
 .wordmark { height: 1.5rem; width: auto; }
 .bar-title { margin: 0; color: var(--fg-dim); flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .as-of { color: var(--fg-faint); font-size: .8rem; text-decoration: none; white-space: nowrap; }
-.as-of:hover { color: var(--fg); }
+.as-of:hover, .source:hover { color: var(--fg); }
+.source { color: var(--fg-dim); font-size: .8rem; text-decoration: none; }
 .sources { border-top: 1px solid var(--rule); padding-top: .8rem; }
 .sources ul { margin: .5rem 0 0; padding-left: 1.1rem; font-size: .82rem; color: var(--fg-dim); }
 .sources li { margin-bottom: .3rem; }
