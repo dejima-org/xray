@@ -95,6 +95,8 @@ The script and units have their own names, so they sit beside the landing page's
 
 Add the directives in `deploy/nginx.conf` to a new `xray.dejima.page` server block inside the host's existing TLS setup, with a certificate for `xray.dejima.page` or `*.dejima.page`, then `nginx -t && systemctl reload nginx`. The `current` symlink is resolved per request, so later deploys need no reload.
 
+`deploy/nginx.conf` lets `dejima.page` embed the site in an iframe and refuses framing by any other origin. An `add_header` in a `location` block replaces the server block's, so if the host adds headers per location, repeat it there.
+
 `pull-site.sh` needs bash, curl, jq, unzip, and coreutils.
 
 To pick up a later change to `deploy/`, update the clone and repeat the two `install` lines and `systemctl daemon-reload`:
