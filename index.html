@@ -32,16 +32,27 @@
       <button type="button" id="zoom-fit" aria-label="Fit to width"><span id="zoom-level">100%</span></button>
       <button type="button" id="zoom-in" aria-label="Zoom in">+</button>
     </div>
-    <dl class="legend">
+    <div class="legend">
+    <dl>
       <div><dt class="sw sw-agent"></dt><dd>the agent</dd></div>
       <div><dt class="sw sw-ours"></dt><dd>dejima's</dd></div>
       <div><dt class="sw sw-sys"></dt><dd>your systems</dd></div>
       <div><dt class="sw sw-ext"></dt><dd>everything else</dd></div>
-      <div><dt class="sw sw-ok"></dt><dd>allowed</dd></div>
-      <div><dt class="sw sw-refused"></dt><dd>refused</dd></div>
-      <div><dt class="sw sw-warn"></dt><dd>allowed, with a caveat</dd></div>
       <div><dt class="sw sw-wall"></dt><dd>isolation boundary</dd></div>
     </dl>
+    <dl>
+      <div><dt><svg class="sw-line" viewBox="0 0 26 8" aria-hidden="true"><path class="link l-rw" d="M2 4H24"/></svg></dt><dd>writable mount</dd></div>
+      <div><dt><svg class="sw-line" viewBox="0 0 26 8" aria-hidden="true"><path class="link l-ro" d="M2 4H24"/></svg></dt><dd>read-only mount</dd></div>
+      <div><dt><svg class="sw-line" viewBox="0 0 26 8" aria-hidden="true"><path class="link l-socket" d="M2 4H24"/></svg></dt><dd>socket</dd></div>
+      <div><dt><svg class="sw-line" viewBox="0 0 26 8" aria-hidden="true"><path class="link l-reads" d="M2 4H24"/></svg></dt><dd>read on the host</dd></div>
+    </dl>
+    <dl>
+      <div><dt><svg class="sw-line" viewBox="0 0 26 8" aria-hidden="true"><path class="trail v-ok" d="M2 4H18"/><path class="tip v-ok" d="M17 0L25 4L17 8z"/></svg></dt><dd>request allowed</dd></div>
+      <div><dt><svg class="sw-line" viewBox="0 0 26 8" aria-hidden="true"><path class="trail v-refused" d="M2 4H18"/><path class="tip v-refused" d="M17 0L25 4L17 8z"/></svg></dt><dd>refused</dd></div>
+      <div><dt><svg class="sw-line" viewBox="0 0 26 8" aria-hidden="true"><path class="trail v-warn" d="M2 4H18"/><path class="tip v-warn" d="M17 0L25 4L17 8z"/></svg></dt><dd>allowed, with a caveat</dd></div>
+      <div><dt><svg class="sw-line" viewBox="0 0 26 8" aria-hidden="true"><path class="trail v-info" d="M2 4H18"/><path class="tip v-info" d="M17 0L25 4L17 8z"/></svg></dt><dd>no verdict</dd></div>
+    </dl>
+    </div>
   </section>
 
   <aside class="side panel" aria-label="Scenarios and details">

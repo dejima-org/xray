@@ -232,7 +232,13 @@ h2, h3, h4 { font-weight: 500; margin: 0; }
 #zoom-fit { min-width: 3.6rem; font-size: .8rem; color: var(--fg-dim); border-inline: 1px solid var(--rule); }
 .legend { position: absolute; left: .8rem; bottom: .8rem; margin: 0; display: flex; flex-wrap: wrap; gap: .3rem .9rem; padding: .35rem .7rem;
   background: color-mix(in srgb, var(--bg-well) 88%, transparent); border: 1px solid var(--rule); border-radius: 8px; font-size: .75rem; color: var(--fg-dim); max-width: calc(100% - 12rem); }
+.legend { flex-direction: column; gap: .3rem; }
+.legend dl { margin: 0; display: flex; flex-wrap: wrap; gap: .3rem .9rem; }
+.legend dl + dl { padding-top: .3rem; border-top: 1px solid var(--rule); }
 .legend div { display: flex; align-items: center; gap: .35rem; }
+.legend dt { display: flex; }
+.sw-line { width: 1.6rem; height: .5rem; overflow: visible; }
+.sw-line .trail { stroke-width: 2.5; }
 .legend dd { margin: 0; }
 .sw { width: .9rem; height: .3rem; border-radius: 2px; }
 .sw-ours, .sw-sys, .sw-ext { width: .8rem; height: .6rem; border-radius: 2px; border: 1px solid var(--rule-strong); }
@@ -240,9 +246,6 @@ h2, h3, h4 { font-weight: 500; margin: 0; }
 .sw-ours { background: color-mix(in srgb, var(--brand) 18%, var(--bg-raise)); border-color: var(--brand); }
 .sw-sys { background: var(--bg-raise); }
 .sw-ext { border-style: dashed; }
-.sw-ok { background: var(--ok); }
-.sw-refused { background: var(--refused); }
-.sw-warn { background: var(--warn); }
 .sw-wall { height: .55rem; background: repeating-linear-gradient(-45deg, var(--fg-dim) 0 2px, transparent 2px 4px); }
 
 /* --- nodes ------------------------------------------------------------ */
@@ -391,10 +394,12 @@ h2, h3, h4 { font-weight: 500; margin: 0; }
 /* wires and packets */
 .wires { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; z-index: 5; }
 .link { fill: none; stroke-width: 1.5; }
-.l-rw { stroke: var(--fg-dim); stroke-dasharray: 5 4; opacity: .7; }
-.l-ro { stroke: var(--fg-faint); stroke-dasharray: 2 4; opacity: .8; }
-.l-socket, .l-reads { stroke: var(--info); opacity: .7; }
-.l-warn { stroke: var(--warn); stroke-dasharray: 5 4; }
+/* Standing connections are grey and told apart by pattern; colour is kept for verdicts. */
+.l-rw, .l-ro, .l-socket, .l-reads { stroke: var(--fg-dim); opacity: .8; }
+.l-rw, .l-warn { stroke-dasharray: 6 4; }
+.l-ro { stroke-dasharray: 0 4.5; stroke-linecap: round; stroke-width: 2.2; }
+.l-reads { stroke-dasharray: 8 3 1.5 3; }
+.l-warn { stroke: var(--warn); }
 .trail { fill: none; stroke-width: 3; stroke-linecap: round; opacity: .9; }
 .trail.v-ok { stroke: var(--ok); } .tip.v-ok { fill: var(--ok); }
 .trail.v-refused { stroke: var(--refused); } .tip.v-refused { fill: var(--refused); }
@@ -413,8 +418,7 @@ h2, h3, h4 { font-weight: 500; margin: 0; }
 .link-g:hover .link, .step-mark:hover .trail { stroke-width: 4; }
 .picked-line .link, .picked-line .trail { stroke-width: 4.5; filter: drop-shadow(0 0 3px color-mix(in srgb, var(--fg) 60%, transparent)); }
 .anchor { stroke: var(--bg-well); stroke-width: 1.5; }
-.anchor.l-rw { fill: var(--fg-dim); } .anchor.l-ro { fill: var(--fg-faint); }
-.anchor.l-socket, .anchor.l-reads { fill: var(--info); } .anchor.l-warn { fill: var(--warn); }
+.anchor.l-rw, .anchor.l-ro, .anchor.l-socket, .anchor.l-reads { fill: var(--fg-dim); stroke-dasharray: none; } .anchor.l-warn { fill: var(--warn); stroke-dasharray: none; }
 .anchor.v-ok { fill: var(--ok); } .anchor.v-refused { fill: var(--refused); } .anchor.v-warn { fill: var(--warn); } .anchor.v-info { fill: var(--info); }
 .caption {
   position: absolute; top: 0; left: 0; z-index: 6; pointer-events: none;
