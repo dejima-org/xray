@@ -391,10 +391,12 @@ h2, h3, h4 { font-weight: 500; margin: 0; }
 /* wires and packets */
 .wires { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; z-index: 5; }
 .link { fill: none; stroke-width: 1.5; }
-.l-rw { stroke: var(--fg-dim); stroke-dasharray: 5 4; opacity: .7; }
-.l-ro { stroke: var(--fg-faint); stroke-dasharray: 2 4; opacity: .8; }
-.l-socket, .l-reads { stroke: var(--info); opacity: .7; }
-.l-warn { stroke: var(--warn); stroke-dasharray: 5 4; }
+/* Standing connections are grey and told apart by pattern; colour is kept for verdicts. */
+.l-rw, .l-ro, .l-socket, .l-reads { stroke: var(--fg-dim); opacity: .8; }
+.l-rw, .l-warn { stroke-dasharray: 6 4; }
+.l-ro { stroke-dasharray: 0 4.5; stroke-linecap: round; stroke-width: 2.2; }
+.l-reads { stroke-dasharray: 8 3 1.5 3; }
+.l-warn { stroke: var(--warn); }
 .trail { fill: none; stroke-width: 3; stroke-linecap: round; opacity: .9; }
 .trail.v-ok { stroke: var(--ok); } .tip.v-ok { fill: var(--ok); }
 .trail.v-refused { stroke: var(--refused); } .tip.v-refused { fill: var(--refused); }
@@ -413,8 +415,7 @@ h2, h3, h4 { font-weight: 500; margin: 0; }
 .link-g:hover .link, .step-mark:hover .trail { stroke-width: 4; }
 .picked-line .link, .picked-line .trail { stroke-width: 4.5; filter: drop-shadow(0 0 3px color-mix(in srgb, var(--fg) 60%, transparent)); }
 .anchor { stroke: var(--bg-well); stroke-width: 1.5; }
-.anchor.l-rw { fill: var(--fg-dim); } .anchor.l-ro { fill: var(--fg-faint); }
-.anchor.l-socket, .anchor.l-reads { fill: var(--info); } .anchor.l-warn { fill: var(--warn); }
+.anchor.l-rw, .anchor.l-ro, .anchor.l-socket, .anchor.l-reads { fill: var(--fg-dim); stroke-dasharray: none; } .anchor.l-warn { fill: var(--warn); stroke-dasharray: none; }
 .anchor.v-ok { fill: var(--ok); } .anchor.v-refused { fill: var(--refused); } .anchor.v-warn { fill: var(--warn); } .anchor.v-info { fill: var(--info); }
 .caption {
   position: absolute; top: 0; left: 0; z-index: 6; pointer-events: none;
