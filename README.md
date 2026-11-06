@@ -32,6 +32,8 @@ An interactive diagram of what dejima and its sister projects do: which componen
 
 Settings are named as you would write them (`[core] internal_domains`, `--require-sealed`, `/etc/dejima-ci/pools`). Choices are fixed example values, not free text. The URL carries the current configuration, so a link reproduces the picture.
 
+**→ [SECURITY.md](SECURITY.md)**: why a wrong verdict is the risk here, and how to report one or a vulnerability.
+
 ## Preview
 
 ```sh
