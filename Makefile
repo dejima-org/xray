@@ -1,5 +1,7 @@
 # The files that make up the site. Everything else stays out of what gets published.
 SITE := index.html styles.css sources.json src assets
+# The SIL Open Font License travels with the fonts it covers, so serving them serves it.
+FONT_LICENCES := assets/fonts/LICENSE-jost.txt assets/fonts/LICENSE-ibm-plex-serif.txt assets/fonts/LICENSE-jetbrains-mono.txt
 
 .PHONY: build check test serve clean sources unverified
 
@@ -15,6 +17,9 @@ check: build
 		[ -e "public/$$ref" ] || { echo "missing from the build: $$ref"; missing=1; }; \
 	done; \
 	for ref in $$(grep -oE 'url\("[^"]+"\)' public/styles.css | sed -E 's/^url\("//; s/"\)$$//'); do \
+		[ -e "public/$$ref" ] || { echo "missing from the build: $$ref"; missing=1; }; \
+	done; \
+	for ref in $(FONT_LICENCES); do \
 		[ -e "public/$$ref" ] || { echo "missing from the build: $$ref"; missing=1; }; \
 	done; \
 	exit $$missing
