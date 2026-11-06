@@ -34,8 +34,14 @@ LAN addresses are private-range examples (`10.0.0.0/24`), because dejima's priva
 
 ## Assets
 
-- `assets/brand/` holds the dejima wordmark and favicon, copied unmodified from the dejima repository. They are trademarks and not covered by any licence in this repository.
+- `assets/brand/` holds the dejima wordmark and favicon, copied unmodified from the dejima repository. They are trademarks: see [Licence](#licence).
 - `assets/fonts/` holds Latin subsets of Jost, IBM Plex Serif, and JetBrains Mono from [Fontsource](https://fontsource.org), self-hosted. Each is under the SIL Open Font License; the licence files sit beside them.
+
+## Licence
+
+GPL-3.0-or-later, as dejima and darner. See [LICENSE](LICENSE). The settings, refusals, and messages the picture quotes are dejima's and its sister projects', under the same licence.
+
+The dejima wordmark and logo are not code and are not covered by that licence. They are trademarks; who holds them and what may be done with them is stated once for the organisation, at [dejima's ATTRIBUTION.md](https://gitbox.branderson.io/dejima/dejima/src/branch/main/ATTRIBUTION.md).
 
 ## Deploy
 
