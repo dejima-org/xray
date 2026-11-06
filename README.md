@@ -1,6 +1,34 @@
+<!-- Fixed, not preference-aware, and that is the decision rather than an
+     oversight. `prefers-color-scheme` reports the browser's setting, never the
+     site's, and this is read on a forge that renders dark whichever way the
+     browser is set - so anything conditional shows dark ink on a dark page to
+     a reader whose browser prefers light, and does it silently.
+     The suffix names the mode a file is FOR, not the colour of its ink:
+     -darkmode is the pale wordmark that belongs on a dark page. GitHub does
+     follow its own theme setting through <picture>, so the GitHub mirror
+     replaces the tag below with one that falls back to
+     dejima-wordmark-lightmode.png; see dejima's mirror/github-mirror.sh.
+     Every &nbsp; here is spacing, and it has to be a character rather than CSS
+     or a presentation attribute. Gitea's sanitizer strips `style` from the tag
+     and from any wrapper, `hspace`/`vspace` survive sanitizing only to be
+     ignored by browsers that dropped HTML4 presentation attributes, and a bare
+     <br> ends a line nothing follows, which browsers collapse to no height.
+     &nbsp; survives as a real U+00A0: on its own line it fills a paragraph
+     that would otherwise be empty, and immediately before the tag it sits
+     inline and indents the image by one space. -->
+&nbsp;
+
+&nbsp;<img src="assets/dejima-wordmark-darkmode.png" alt="dejima" height="72">
+
+---
+
+&nbsp;
+
 # dejima-xray
 
 An interactive diagram of what dejima and its sister projects do: which component runs where, which wall bounds it, and where each request is stopped. Turn on a sister project or change a setting and the picture redraws at once. Pick something to happen and a packet walks its real path, with each hop explained.
+
+[![Developed in dejima](assets/dejima-badge.svg)](https://gitbox.branderson.io/dejima/dejima)
 
 Settings are named as you would write them (`[core] internal_domains`, `--require-sealed`, `/etc/dejima-ci/pools`). Choices are fixed example values, not free text. The URL carries the current configuration, so a link reproduces the picture.
 
@@ -34,7 +62,7 @@ LAN addresses are private-range examples (`10.0.0.0/24`), because dejima's priva
 
 ## Assets
 
-- `assets/brand/` holds the dejima wordmark and favicon, copied unmodified from the dejima repository. They are trademarks: see [Licence](#licence).
+- `assets/` holds the dejima wordmark in both versions (the page uses `-darkmode`), the favicon, and the "Developed in dejima" badge, copied unmodified from the dejima and dejima-badge repositories. The wordmark and favicon are trademarks: see [Licence](#licence).
 - `assets/fonts/` holds Latin subsets of Jost, IBM Plex Serif, and JetBrains Mono from [Fontsource](https://fontsource.org), self-hosted. Each is under the SIL Open Font License; the licence files sit beside them.
 
 ## Licence
