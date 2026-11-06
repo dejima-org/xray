@@ -232,7 +232,13 @@ h2, h3, h4 { font-weight: 500; margin: 0; }
 #zoom-fit { min-width: 3.6rem; font-size: .8rem; color: var(--fg-dim); border-inline: 1px solid var(--rule); }
 .legend { position: absolute; left: .8rem; bottom: .8rem; margin: 0; display: flex; flex-wrap: wrap; gap: .3rem .9rem; padding: .35rem .7rem;
   background: color-mix(in srgb, var(--bg-well) 88%, transparent); border: 1px solid var(--rule); border-radius: 8px; font-size: .75rem; color: var(--fg-dim); max-width: calc(100% - 12rem); }
+.legend { flex-direction: column; gap: .3rem; }
+.legend dl { margin: 0; display: flex; flex-wrap: wrap; gap: .3rem .9rem; }
+.legend dl + dl { padding-top: .3rem; border-top: 1px solid var(--rule); }
 .legend div { display: flex; align-items: center; gap: .35rem; }
+.legend dt { display: flex; }
+.sw-line { width: 1.6rem; height: .5rem; overflow: visible; }
+.sw-line .trail { stroke-width: 2.5; }
 .legend dd { margin: 0; }
 .sw { width: .9rem; height: .3rem; border-radius: 2px; }
 .sw-ours, .sw-sys, .sw-ext { width: .8rem; height: .6rem; border-radius: 2px; border: 1px solid var(--rule-strong); }
@@ -240,9 +246,6 @@ h2, h3, h4 { font-weight: 500; margin: 0; }
 .sw-ours { background: color-mix(in srgb, var(--brand) 18%, var(--bg-raise)); border-color: var(--brand); }
 .sw-sys { background: var(--bg-raise); }
 .sw-ext { border-style: dashed; }
-.sw-ok { background: var(--ok); }
-.sw-refused { background: var(--refused); }
-.sw-warn { background: var(--warn); }
 .sw-wall { height: .55rem; background: repeating-linear-gradient(-45deg, var(--fg-dim) 0 2px, transparent 2px 4px); }
 
 /* --- nodes ------------------------------------------------------------ */
