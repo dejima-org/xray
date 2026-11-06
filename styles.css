@@ -82,6 +82,7 @@ h2, h3, h4 { font-weight: 500; margin: 0; }
   border-bottom: 1px solid var(--rule);
   background: var(--bg-well);
 }
+.home { display: flex; }
 .wordmark { height: 1.5rem; width: auto; }
 .bar-title { margin: 0; color: var(--fg-dim); flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .as-of { color: var(--fg-faint); font-size: .8rem; text-decoration: none; white-space: nowrap; }
@@ -452,7 +453,7 @@ h2, h3, h4 { font-weight: 500; margin: 0; }
 @media (max-width: 600px) {
   .bar-title { display: none; }
   .as-of { display: none; }
-  .wordmark { margin-right: auto; }
+  .home { margin-right: auto; }
 }
 
 @media (prefers-reduced-motion: reduce) {
