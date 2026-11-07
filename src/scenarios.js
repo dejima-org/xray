@@ -123,7 +123,7 @@ export function scenarios(cfg, d) {
       npmDropped ? (d.sealed ? 'Sealed: dnsmasq has no upstream to forward anything to.' : '--drop-domains dropped the built-in list. The name is answered locally and never leaves.')
         : 'On the built-in list, so it is forwarded.', ['drop', 'sealed']),
     !npmDropped && step(['s-dns', 'bridge', ...nodeFw, 'lan-resolver'], 'ok', 'Forwarded upstream',
-      `To Docker's resolver at 127.0.0.11, then your resolver${dv ? ', through node rules 5-6' : ''}. AAAA answers are stripped; the addresses go into an nftables set for an hour.`, []),
+      `To Docker's resolver at 127.0.0.11, then your resolver${dv ? ', through node rules 5-6' : ''}. AAAA answers are stripped; the addresses go into an nftables set for an hour. dnsmasq keeps no cache, so every lookup is forwarded, and one after the hour puts the addresses back.`, []),
     !npmDropped && step(['s-harness', 'g-nft', ...out('net-npm')], 'ok', 'Connect on 443', 'The address is in the set, so nftables accepts it.', []),
   ]));
 
