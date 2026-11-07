@@ -393,7 +393,7 @@
  {
   "project": "darner",
   "scenario": "dn-matrix",
-  "step": "@dragonlet fix the flaky test",
+  "step": "@darner fix the flaky test",
   "verdict": "ok",
   "path": "ph-matrix → net-matrix → mb-bot",
   "detail": "The sender must be on the bot's allowlist; anyone else is ignored silently. The bot reacts ⏳.",
@@ -450,7 +450,7 @@
   "step": "dejima --isolated --drop-domains refuses",
   "verdict": "refused",
   "path": "p-dn-launch",
-  "detail": "harness.cline: refusing [backend.self-hosted] base_url http://llm.example.lan:11434. That backend needs no credential, so the endpoint has to be one that needs none: a model you serve. This is not host-local, so it would want a key inside the container. ... For one you serve, that means a loopback or RFC 1918 address, or a host you have allowlisted: dejima-allow --project <path> <host> The tmux window dn-k3x7q opened, so the bot first said \"Started\"; on the next poll the task has exited, and it says \"dn-k3x7q ended.\" with no reason. The reason waits in darner:dn-k3x7q, for Enter.",
+  "detail": "harness.cline: refusing [backend.self-hosted] base_url http://llm.example.lan:11434. That backend needs no credential, so the endpoint has to be one that needs none: a model you serve. This is not host-local, so it would want a key inside the container. ... For one you serve, that means a loopback or RFC 1918 address, or a host you have allowlisted: dejima-allow --global <host> or name it in the file you pass to --domains, which this launch reads as the same declaration. Not --project: an isolated launch resolves no project, so a project approval is not read here. Naming it is how you say the endpoint is yours rather than a hosted API. dejima permits a configured base_url host itself, as it does the forge, so this check is not about whether it is reachable. The tmux window dn-k3x7q opened, so the bot first said \"Started\"; on the next poll the task has exited, and it says \"dn-k3x7q ended.\" with no reason. The reason waits in darner:dn-k3x7q, for Enter.",
   "cfg": [
    "+darner",
    "harness=\"cline\"",
@@ -626,7 +626,7 @@
   "step": "dejima --isolated --require-sealed refuses",
   "verdict": "refused",
   "path": "p-dn-launch",
-  "detail": "harness.cline: refusing [backend.self-hosted] base_url http://llm.example.lan:11434. That backend needs no credential, so the endpoint has to be one that needs none: a model you serve. This is not host-local, so it would want a key inside the container. ... For one you serve, that means a loopback or RFC 1918 address, or a host you have allowlisted: dejima-allow --project <path> <host> The tmux window dn-k3x7q opened, so the bot first said \"Started\"; on the next poll the task has exited, and it says \"dn-k3x7q ended.\" with no reason. The reason waits in darner:dn-k3x7q, for Enter.",
+  "detail": "harness.cline: refusing [backend.self-hosted] base_url http://llm.example.lan:11434. That backend needs no credential, so the endpoint has to be one that needs none: a model you serve. This is not host-local, so it would want a key inside the container. ... For one you serve, that means a loopback or RFC 1918 address, or a host you have allowlisted: dejima-allow --global <host> or name it in the file you pass to --domains, which this launch reads as the same declaration. Not --project: an isolated launch resolves no project, so a project approval is not read here. Naming it is how you say the endpoint is yours rather than a hosted API. dejima permits a configured base_url host itself, as it does the forge, so this check is not about whether it is reachable. The tmux window dn-k3x7q opened, so the bot first said \"Started\"; on the next poll the task has exited, and it says \"dn-k3x7q ended.\" with no reason. The reason waits in darner:dn-k3x7q, for Enter.",
   "cfg": [
    "+darner",
    "harness=\"cline\"",
@@ -731,7 +731,7 @@
   "step": "dejima --isolated refuses",
   "verdict": "refused",
   "path": "p-dn-launch",
-  "detail": "harness.cline: refusing [backend.self-hosted] base_url http://llm.example.lan:11434. That backend needs no credential, so the endpoint has to be one that needs none: a model you serve. This is not host-local, so it would want a key inside the container. ... For one you serve, that means a loopback or RFC 1918 address, or a host you have allowlisted: dejima-allow --project <path> <host> The tmux window dn-k3x7q opened, so the bot first said \"Started\"; on the next poll the task has exited, and it says \"dn-k3x7q ended.\" with no reason. The reason waits in darner:dn-k3x7q, for Enter.",
+  "detail": "harness.cline: refusing [backend.self-hosted] base_url http://llm.example.lan:11434. That backend needs no credential, so the endpoint has to be one that needs none: a model you serve. This is not host-local, so it would want a key inside the container. ... For one you serve, that means a loopback or RFC 1918 address, or a host you have allowlisted: dejima-allow --global <host> or name it in the file you pass to --domains, which this launch reads as the same declaration. Not --project: an isolated launch resolves no project, so a project approval is not read here. Naming it is how you say the endpoint is yours rather than a hosted API. dejima permits a configured base_url host itself, as it does the forge, so this check is not about whether it is reachable. The tmux window dn-k3x7q opened, so the bot first said \"Started\"; on the next poll the task has exited, and it says \"dn-k3x7q ended.\" with no reason. The reason waits in darner:dn-k3x7q, for Enter.",
   "cfg": [
    "+darner",
    "harness=\"cline\"",
@@ -761,7 +761,7 @@
   "step": "dejima --isolated refuses",
   "verdict": "refused",
   "path": "p-dn-launch",
-  "detail": "The egress control for this session stopped before it was ready, so there is no filter for the sandbox to run behind. Refusing to start it. The filter said: ERROR: the internal-destination exemption names destinations nothing permits: wiki.example.lan [core] internal_domains and --internal-domain both exempt a name from the check that refuses an answer pointing inside a private network. Neither makes the name reachable - approve it as well: dejima-allow --global wiki.example.lan        # or --project An isolated launch has no approval store, so there it is a line in the file given to --domains. The tmux window dn-k3x7q opened, so the bot first said \"Started\"; on the next poll the task has exited, and it says \"dn-k3x7q ended.\" with no reason. The reason waits in darner:dn-k3x7q, for Enter.",
+  "detail": "The egress control for this session stopped before it was ready, so there is no filter for the sandbox to run behind. Refusing to start it. The filter said: ERROR: the internal-destination exemption names destinations nothing permits: wiki.example.lan [core] internal_domains and --internal-domain both exempt a name from the check that refuses an answer pointing inside a private network. Neither makes the name reachable - approve it as well: dejima-allow --global wiki.example.lan        # or --project An isolated launch resolves no project, so --project does nothing there; --global still counts. Unless this launch dropped the global list with --drop-domains or --require-sealed, where the file given to --domains is the only way in. The tmux window dn-k3x7q opened, so the bot first said \"Started\"; on the next poll the task has exited, and it says \"dn-k3x7q ended.\" with no reason. The reason waits in darner:dn-k3x7q, for Enter.",
   "cfg": [
    "+darner",
    "internal=\"wiki.example.lan\""
@@ -1068,7 +1068,7 @@
   "step": "dejima --isolated --drop-domains refuses",
   "verdict": "refused",
   "path": "p-dn-launch",
-  "detail": "harness.cline: refusing [backend.self-hosted] base_url http://llm.example.lan:11434. That backend needs no credential, so the endpoint has to be one that needs none: a model you serve. This is not host-local, so it would want a key inside the container. ... For one you serve, that means a loopback or RFC 1918 address, or a host you have allowlisted: dejima-allow --project <path> <host> The tmux window dn-k3x7q opened, so darner-web opened the session page; on the next poll it shows \"Ended. Its output is kept here until it's cleared.\" with no reason. The reason waits in darner:dn-k3x7q, for Enter.",
+  "detail": "harness.cline: refusing [backend.self-hosted] base_url http://llm.example.lan:11434. That backend needs no credential, so the endpoint has to be one that needs none: a model you serve. This is not host-local, so it would want a key inside the container. ... For one you serve, that means a loopback or RFC 1918 address, or a host you have allowlisted: dejima-allow --global <host> or name it in the file you pass to --domains, which this launch reads as the same declaration. Not --project: an isolated launch resolves no project, so a project approval is not read here. Naming it is how you say the endpoint is yours rather than a hosted API. dejima permits a configured base_url host itself, as it does the forge, so this check is not about whether it is reachable. The tmux window dn-k3x7q opened, so darner-web opened the session page; on the next poll it shows \"Ended. Its output is kept here until it's cleared.\" with no reason. The reason waits in darner:dn-k3x7q, for Enter.",
   "cfg": [
    "+darner",
    "harness=\"cline\"",
@@ -1244,7 +1244,7 @@
   "step": "dejima --isolated --require-sealed refuses",
   "verdict": "refused",
   "path": "p-dn-launch",
-  "detail": "harness.cline: refusing [backend.self-hosted] base_url http://llm.example.lan:11434. That backend needs no credential, so the endpoint has to be one that needs none: a model you serve. This is not host-local, so it would want a key inside the container. ... For one you serve, that means a loopback or RFC 1918 address, or a host you have allowlisted: dejima-allow --project <path> <host> The tmux window dn-k3x7q opened, so darner-web opened the session page; on the next poll it shows \"Ended. Its output is kept here until it's cleared.\" with no reason. The reason waits in darner:dn-k3x7q, for Enter.",
+  "detail": "harness.cline: refusing [backend.self-hosted] base_url http://llm.example.lan:11434. That backend needs no credential, so the endpoint has to be one that needs none: a model you serve. This is not host-local, so it would want a key inside the container. ... For one you serve, that means a loopback or RFC 1918 address, or a host you have allowlisted: dejima-allow --global <host> or name it in the file you pass to --domains, which this launch reads as the same declaration. Not --project: an isolated launch resolves no project, so a project approval is not read here. Naming it is how you say the endpoint is yours rather than a hosted API. dejima permits a configured base_url host itself, as it does the forge, so this check is not about whether it is reachable. The tmux window dn-k3x7q opened, so darner-web opened the session page; on the next poll it shows \"Ended. Its output is kept here until it's cleared.\" with no reason. The reason waits in darner:dn-k3x7q, for Enter.",
   "cfg": [
    "+darner",
    "harness=\"cline\"",
@@ -1349,7 +1349,7 @@
   "step": "dejima --isolated refuses",
   "verdict": "refused",
   "path": "p-dn-launch",
-  "detail": "harness.cline: refusing [backend.self-hosted] base_url http://llm.example.lan:11434. That backend needs no credential, so the endpoint has to be one that needs none: a model you serve. This is not host-local, so it would want a key inside the container. ... For one you serve, that means a loopback or RFC 1918 address, or a host you have allowlisted: dejima-allow --project <path> <host> The tmux window dn-k3x7q opened, so darner-web opened the session page; on the next poll it shows \"Ended. Its output is kept here until it's cleared.\" with no reason. The reason waits in darner:dn-k3x7q, for Enter.",
+  "detail": "harness.cline: refusing [backend.self-hosted] base_url http://llm.example.lan:11434. That backend needs no credential, so the endpoint has to be one that needs none: a model you serve. This is not host-local, so it would want a key inside the container. ... For one you serve, that means a loopback or RFC 1918 address, or a host you have allowlisted: dejima-allow --global <host> or name it in the file you pass to --domains, which this launch reads as the same declaration. Not --project: an isolated launch resolves no project, so a project approval is not read here. Naming it is how you say the endpoint is yours rather than a hosted API. dejima permits a configured base_url host itself, as it does the forge, so this check is not about whether it is reachable. The tmux window dn-k3x7q opened, so darner-web opened the session page; on the next poll it shows \"Ended. Its output is kept here until it's cleared.\" with no reason. The reason waits in darner:dn-k3x7q, for Enter.",
   "cfg": [
    "+darner",
    "harness=\"cline\"",
@@ -1379,7 +1379,7 @@
   "step": "dejima --isolated refuses",
   "verdict": "refused",
   "path": "p-dn-launch",
-  "detail": "The egress control for this session stopped before it was ready, so there is no filter for the sandbox to run behind. Refusing to start it. The filter said: ERROR: the internal-destination exemption names destinations nothing permits: wiki.example.lan [core] internal_domains and --internal-domain both exempt a name from the check that refuses an answer pointing inside a private network. Neither makes the name reachable - approve it as well: dejima-allow --global wiki.example.lan        # or --project An isolated launch has no approval store, so there it is a line in the file given to --domains. The tmux window dn-k3x7q opened, so darner-web opened the session page; on the next poll it shows \"Ended. Its output is kept here until it's cleared.\" with no reason. The reason waits in darner:dn-k3x7q, for Enter.",
+  "detail": "The egress control for this session stopped before it was ready, so there is no filter for the sandbox to run behind. Refusing to start it. The filter said: ERROR: the internal-destination exemption names destinations nothing permits: wiki.example.lan [core] internal_domains and --internal-domain both exempt a name from the check that refuses an answer pointing inside a private network. Neither makes the name reachable - approve it as well: dejima-allow --global wiki.example.lan        # or --project An isolated launch resolves no project, so --project does nothing there; --global still counts. Unless this launch dropped the global list with --drop-domains or --require-sealed, where the file given to --domains is the only way in. The tmux window dn-k3x7q opened, so darner-web opened the session page; on the next poll it shows \"Ended. Its output is kept here until it's cleared.\" with no reason. The reason waits in darner:dn-k3x7q, for Enter.",
   "cfg": [
    "+darner",
    "internal=\"wiki.example.lan\""
@@ -1714,7 +1714,22 @@
   "step": "",
   "verdict": "refused",
   "path": "",
-  "detail": "harness.cline: refusing [backend.self-hosted] base_url http://llm.example.lan:11434. That backend needs no credential, so the endpoint has to be one that needs none: a model you serve. This is not host-local, so it would want a key inside the container. ... For one you serve, that means a loopback or RFC 1918 address, or a host you have allowlisted: dejima-allow --project <path> <host>",
+  "detail": "harness.cline: refusing [backend.self-hosted] base_url http://llm.example.lan:11434. That backend needs no credential, so the endpoint has to be one that needs none: a model you serve. This is not host-local, so it would want a key inside the container. ... For one you serve, that means a loopback or RFC 1918 address, or a host you have allowlisted: dejima-allow --global <host> or name it in the file you pass to --domains, which this launch reads as the same declaration. Not --project: an isolated launch resolves no project, so a project approval is not read here. Naming it is how you say the endpoint is yours rather than a hosted API. dejima permits a configured base_url host itself, as it does the forge, so this check is not about whether it is reachable.",
+  "cfg": [
+   "harness=\"cline\"",
+   "cline_backend=\"self-hosted\"",
+   "cline_model=\"set\"",
+   "base_url=\"http://llm.example.lan:11434\"",
+   "isolated=\"on\""
+  ]
+ },
+ {
+  "project": "dejima",
+  "scenario": "(launch refusal)",
+  "step": "",
+  "verdict": "refused",
+  "path": "",
+  "detail": "harness.cline: refusing [backend.self-hosted] base_url http://llm.example.lan:11434. That backend needs no credential, so the endpoint has to be one that needs none: a model you serve. This is not host-local, so it would want a key inside the container. ... For one you serve, that means a loopback or RFC 1918 address, or a host you have allowlisted: dejima-allow --project <path> <host> Naming it is how you say the endpoint is yours rather than a hosted API. dejima permits a configured base_url host itself, as it does the forge, so this check is not about whether it is reachable.",
   "cfg": [
    "harness=\"cline\"",
    "cline_backend=\"self-hosted\"",
@@ -1742,7 +1757,7 @@
   "step": "",
   "verdict": "refused",
   "path": "",
-  "detail": "The egress control for this session stopped before it was ready, so there is no filter for the sandbox to run behind. Refusing to start it. The filter said: ERROR: the internal-destination exemption names destinations nothing permits: wiki.example.lan [core] internal_domains and --internal-domain both exempt a name from the check that refuses an answer pointing inside a private network. Neither makes the name reachable - approve it as well: dejima-allow --global wiki.example.lan        # or --project An isolated launch has no approval store, so there it is a line in the file given to --domains.",
+  "detail": "The egress control for this session stopped before it was ready, so there is no filter for the sandbox to run behind. Refusing to start it. The filter said: ERROR: the internal-destination exemption names destinations nothing permits: wiki.example.lan [core] internal_domains and --internal-domain both exempt a name from the check that refuses an answer pointing inside a private network. Neither makes the name reachable - approve it as well: dejima-allow --global wiki.example.lan        # or --project An isolated launch resolves no project, so --project does nothing there; --global still counts. Unless this launch dropped the global list with --drop-domains or --require-sealed, where the file given to --domains is the only way in.",
   "cfg": [
    "internal=\"wiki.example.lan\""
   ]
@@ -1943,7 +1958,22 @@
   "step": "dejima refuses to launch",
   "verdict": "refused",
   "path": "p-launcher",
-  "detail": "harness.cline: refusing [backend.self-hosted] base_url http://llm.example.lan:11434. That backend needs no credential, so the endpoint has to be one that needs none: a model you serve. This is not host-local, so it would want a key inside the container. ... For one you serve, that means a loopback or RFC 1918 address, or a host you have allowlisted: dejima-allow --project <path> <host>",
+  "detail": "harness.cline: refusing [backend.self-hosted] base_url http://llm.example.lan:11434. That backend needs no credential, so the endpoint has to be one that needs none: a model you serve. This is not host-local, so it would want a key inside the container. ... For one you serve, that means a loopback or RFC 1918 address, or a host you have allowlisted: dejima-allow --global <host> or name it in the file you pass to --domains, which this launch reads as the same declaration. Not --project: an isolated launch resolves no project, so a project approval is not read here. Naming it is how you say the endpoint is yours rather than a hosted API. dejima permits a configured base_url host itself, as it does the forge, so this check is not about whether it is reachable.",
+  "cfg": [
+   "harness=\"cline\"",
+   "cline_backend=\"self-hosted\"",
+   "cline_model=\"set\"",
+   "base_url=\"http://llm.example.lan:11434\"",
+   "isolated=\"on\""
+  ]
+ },
+ {
+  "project": "dejima",
+  "scenario": "api",
+  "step": "dejima refuses to launch",
+  "verdict": "refused",
+  "path": "p-launcher",
+  "detail": "harness.cline: refusing [backend.self-hosted] base_url http://llm.example.lan:11434. That backend needs no credential, so the endpoint has to be one that needs none: a model you serve. This is not host-local, so it would want a key inside the container. ... For one you serve, that means a loopback or RFC 1918 address, or a host you have allowlisted: dejima-allow --project <path> <host> Naming it is how you say the endpoint is yours rather than a hosted API. dejima permits a configured base_url host itself, as it does the forge, so this check is not about whether it is reachable.",
   "cfg": [
    "harness=\"cline\"",
    "cline_backend=\"self-hosted\"",
@@ -1971,7 +2001,7 @@
   "step": "dejima refuses to launch",
   "verdict": "refused",
   "path": "p-launcher",
-  "detail": "The egress control for this session stopped before it was ready, so there is no filter for the sandbox to run behind. Refusing to start it. The filter said: ERROR: the internal-destination exemption names destinations nothing permits: wiki.example.lan [core] internal_domains and --internal-domain both exempt a name from the check that refuses an answer pointing inside a private network. Neither makes the name reachable - approve it as well: dejima-allow --global wiki.example.lan        # or --project An isolated launch has no approval store, so there it is a line in the file given to --domains.",
+  "detail": "The egress control for this session stopped before it was ready, so there is no filter for the sandbox to run behind. Refusing to start it. The filter said: ERROR: the internal-destination exemption names destinations nothing permits: wiki.example.lan [core] internal_domains and --internal-domain both exempt a name from the check that refuses an answer pointing inside a private network. Neither makes the name reachable - approve it as well: dejima-allow --global wiki.example.lan        # or --project An isolated launch resolves no project, so --project does nothing there; --global still counts. Unless this launch dropped the global list with --drop-domains or --require-sealed, where the file given to --domains is the only way in.",
   "cfg": [
    "internal=\"wiki.example.lan\""
   ]
@@ -2616,7 +2646,22 @@
   "step": "dejima refuses to launch",
   "verdict": "refused",
   "path": "p-launcher",
-  "detail": "harness.cline: refusing [backend.self-hosted] base_url http://llm.example.lan:11434. That backend needs no credential, so the endpoint has to be one that needs none: a model you serve. This is not host-local, so it would want a key inside the container. ... For one you serve, that means a loopback or RFC 1918 address, or a host you have allowlisted: dejima-allow --project <path> <host>",
+  "detail": "harness.cline: refusing [backend.self-hosted] base_url http://llm.example.lan:11434. That backend needs no credential, so the endpoint has to be one that needs none: a model you serve. This is not host-local, so it would want a key inside the container. ... For one you serve, that means a loopback or RFC 1918 address, or a host you have allowlisted: dejima-allow --global <host> or name it in the file you pass to --domains, which this launch reads as the same declaration. Not --project: an isolated launch resolves no project, so a project approval is not read here. Naming it is how you say the endpoint is yours rather than a hosted API. dejima permits a configured base_url host itself, as it does the forge, so this check is not about whether it is reachable.",
+  "cfg": [
+   "harness=\"cline\"",
+   "cline_backend=\"self-hosted\"",
+   "cline_model=\"set\"",
+   "base_url=\"http://llm.example.lan:11434\"",
+   "isolated=\"on\""
+  ]
+ },
+ {
+  "project": "dejima",
+  "scenario": "close",
+  "step": "dejima refuses to launch",
+  "verdict": "refused",
+  "path": "p-launcher",
+  "detail": "harness.cline: refusing [backend.self-hosted] base_url http://llm.example.lan:11434. That backend needs no credential, so the endpoint has to be one that needs none: a model you serve. This is not host-local, so it would want a key inside the container. ... For one you serve, that means a loopback or RFC 1918 address, or a host you have allowlisted: dejima-allow --project <path> <host> Naming it is how you say the endpoint is yours rather than a hosted API. dejima permits a configured base_url host itself, as it does the forge, so this check is not about whether it is reachable.",
   "cfg": [
    "harness=\"cline\"",
    "cline_backend=\"self-hosted\"",
@@ -2644,7 +2689,7 @@
   "step": "dejima refuses to launch",
   "verdict": "refused",
   "path": "p-launcher",
-  "detail": "The egress control for this session stopped before it was ready, so there is no filter for the sandbox to run behind. Refusing to start it. The filter said: ERROR: the internal-destination exemption names destinations nothing permits: wiki.example.lan [core] internal_domains and --internal-domain both exempt a name from the check that refuses an answer pointing inside a private network. Neither makes the name reachable - approve it as well: dejima-allow --global wiki.example.lan        # or --project An isolated launch has no approval store, so there it is a line in the file given to --domains.",
+  "detail": "The egress control for this session stopped before it was ready, so there is no filter for the sandbox to run behind. Refusing to start it. The filter said: ERROR: the internal-destination exemption names destinations nothing permits: wiki.example.lan [core] internal_domains and --internal-domain both exempt a name from the check that refuses an answer pointing inside a private network. Neither makes the name reachable - approve it as well: dejima-allow --global wiki.example.lan        # or --project An isolated launch resolves no project, so --project does nothing there; --global still counts. Unless this launch dropped the global list with --drop-domains or --require-sealed, where the file given to --domains is the only way in.",
   "cfg": [
    "internal=\"wiki.example.lan\""
   ]
@@ -2967,7 +3012,22 @@
   "step": "dejima refuses to launch",
   "verdict": "refused",
   "path": "p-launcher",
-  "detail": "harness.cline: refusing [backend.self-hosted] base_url http://llm.example.lan:11434. That backend needs no credential, so the endpoint has to be one that needs none: a model you serve. This is not host-local, so it would want a key inside the container. ... For one you serve, that means a loopback or RFC 1918 address, or a host you have allowlisted: dejima-allow --project <path> <host>",
+  "detail": "harness.cline: refusing [backend.self-hosted] base_url http://llm.example.lan:11434. That backend needs no credential, so the endpoint has to be one that needs none: a model you serve. This is not host-local, so it would want a key inside the container. ... For one you serve, that means a loopback or RFC 1918 address, or a host you have allowlisted: dejima-allow --global <host> or name it in the file you pass to --domains, which this launch reads as the same declaration. Not --project: an isolated launch resolves no project, so a project approval is not read here. Naming it is how you say the endpoint is yours rather than a hosted API. dejima permits a configured base_url host itself, as it does the forge, so this check is not about whether it is reachable.",
+  "cfg": [
+   "harness=\"cline\"",
+   "cline_backend=\"self-hosted\"",
+   "cline_model=\"set\"",
+   "base_url=\"http://llm.example.lan:11434\"",
+   "isolated=\"on\""
+  ]
+ },
+ {
+  "project": "dejima",
+  "scenario": "escape",
+  "step": "dejima refuses to launch",
+  "verdict": "refused",
+  "path": "p-launcher",
+  "detail": "harness.cline: refusing [backend.self-hosted] base_url http://llm.example.lan:11434. That backend needs no credential, so the endpoint has to be one that needs none: a model you serve. This is not host-local, so it would want a key inside the container. ... For one you serve, that means a loopback or RFC 1918 address, or a host you have allowlisted: dejima-allow --project <path> <host> Naming it is how you say the endpoint is yours rather than a hosted API. dejima permits a configured base_url host itself, as it does the forge, so this check is not about whether it is reachable.",
   "cfg": [
    "harness=\"cline\"",
    "cline_backend=\"self-hosted\"",
@@ -2995,7 +3055,7 @@
   "step": "dejima refuses to launch",
   "verdict": "refused",
   "path": "p-launcher",
-  "detail": "The egress control for this session stopped before it was ready, so there is no filter for the sandbox to run behind. Refusing to start it. The filter said: ERROR: the internal-destination exemption names destinations nothing permits: wiki.example.lan [core] internal_domains and --internal-domain both exempt a name from the check that refuses an answer pointing inside a private network. Neither makes the name reachable - approve it as well: dejima-allow --global wiki.example.lan        # or --project An isolated launch has no approval store, so there it is a line in the file given to --domains.",
+  "detail": "The egress control for this session stopped before it was ready, so there is no filter for the sandbox to run behind. Refusing to start it. The filter said: ERROR: the internal-destination exemption names destinations nothing permits: wiki.example.lan [core] internal_domains and --internal-domain both exempt a name from the check that refuses an answer pointing inside a private network. Neither makes the name reachable - approve it as well: dejima-allow --global wiki.example.lan        # or --project An isolated launch resolves no project, so --project does nothing there; --global still counts. Unless this launch dropped the global list with --drop-domains or --require-sealed, where the file given to --domains is the only way in.",
   "cfg": [
    "internal=\"wiki.example.lan\""
   ]
@@ -3239,7 +3299,22 @@
   "step": "dejima refuses to launch",
   "verdict": "refused",
   "path": "p-launcher",
-  "detail": "harness.cline: refusing [backend.self-hosted] base_url http://llm.example.lan:11434. That backend needs no credential, so the endpoint has to be one that needs none: a model you serve. This is not host-local, so it would want a key inside the container. ... For one you serve, that means a loopback or RFC 1918 address, or a host you have allowlisted: dejima-allow --project <path> <host>",
+  "detail": "harness.cline: refusing [backend.self-hosted] base_url http://llm.example.lan:11434. That backend needs no credential, so the endpoint has to be one that needs none: a model you serve. This is not host-local, so it would want a key inside the container. ... For one you serve, that means a loopback or RFC 1918 address, or a host you have allowlisted: dejima-allow --global <host> or name it in the file you pass to --domains, which this launch reads as the same declaration. Not --project: an isolated launch resolves no project, so a project approval is not read here. Naming it is how you say the endpoint is yours rather than a hosted API. dejima permits a configured base_url host itself, as it does the forge, so this check is not about whether it is reachable.",
+  "cfg": [
+   "harness=\"cline\"",
+   "cline_backend=\"self-hosted\"",
+   "cline_model=\"set\"",
+   "base_url=\"http://llm.example.lan:11434\"",
+   "isolated=\"on\""
+  ]
+ },
+ {
+  "project": "dejima",
+  "scenario": "files",
+  "step": "dejima refuses to launch",
+  "verdict": "refused",
+  "path": "p-launcher",
+  "detail": "harness.cline: refusing [backend.self-hosted] base_url http://llm.example.lan:11434. That backend needs no credential, so the endpoint has to be one that needs none: a model you serve. This is not host-local, so it would want a key inside the container. ... For one you serve, that means a loopback or RFC 1918 address, or a host you have allowlisted: dejima-allow --project <path> <host> Naming it is how you say the endpoint is yours rather than a hosted API. dejima permits a configured base_url host itself, as it does the forge, so this check is not about whether it is reachable.",
   "cfg": [
    "harness=\"cline\"",
    "cline_backend=\"self-hosted\"",
@@ -3267,7 +3342,7 @@
   "step": "dejima refuses to launch",
   "verdict": "refused",
   "path": "p-launcher",
-  "detail": "The egress control for this session stopped before it was ready, so there is no filter for the sandbox to run behind. Refusing to start it. The filter said: ERROR: the internal-destination exemption names destinations nothing permits: wiki.example.lan [core] internal_domains and --internal-domain both exempt a name from the check that refuses an answer pointing inside a private network. Neither makes the name reachable - approve it as well: dejima-allow --global wiki.example.lan        # or --project An isolated launch has no approval store, so there it is a line in the file given to --domains.",
+  "detail": "The egress control for this session stopped before it was ready, so there is no filter for the sandbox to run behind. Refusing to start it. The filter said: ERROR: the internal-destination exemption names destinations nothing permits: wiki.example.lan [core] internal_domains and --internal-domain both exempt a name from the check that refuses an answer pointing inside a private network. Neither makes the name reachable - approve it as well: dejima-allow --global wiki.example.lan        # or --project An isolated launch resolves no project, so --project does nothing there; --global still counts. Unless this launch dropped the global list with --drop-domains or --require-sealed, where the file given to --domains is the only way in.",
   "cfg": [
    "internal=\"wiki.example.lan\""
   ]
@@ -3563,7 +3638,22 @@
   "step": "dejima refuses to launch",
   "verdict": "refused",
   "path": "p-launcher",
-  "detail": "harness.cline: refusing [backend.self-hosted] base_url http://llm.example.lan:11434. That backend needs no credential, so the endpoint has to be one that needs none: a model you serve. This is not host-local, so it would want a key inside the container. ... For one you serve, that means a loopback or RFC 1918 address, or a host you have allowlisted: dejima-allow --project <path> <host>",
+  "detail": "harness.cline: refusing [backend.self-hosted] base_url http://llm.example.lan:11434. That backend needs no credential, so the endpoint has to be one that needs none: a model you serve. This is not host-local, so it would want a key inside the container. ... For one you serve, that means a loopback or RFC 1918 address, or a host you have allowlisted: dejima-allow --global <host> or name it in the file you pass to --domains, which this launch reads as the same declaration. Not --project: an isolated launch resolves no project, so a project approval is not read here. Naming it is how you say the endpoint is yours rather than a hosted API. dejima permits a configured base_url host itself, as it does the forge, so this check is not about whether it is reachable.",
+  "cfg": [
+   "harness=\"cline\"",
+   "cline_backend=\"self-hosted\"",
+   "cline_model=\"set\"",
+   "base_url=\"http://llm.example.lan:11434\"",
+   "isolated=\"on\""
+  ]
+ },
+ {
+  "project": "dejima",
+  "scenario": "internal",
+  "step": "dejima refuses to launch",
+  "verdict": "refused",
+  "path": "p-launcher",
+  "detail": "harness.cline: refusing [backend.self-hosted] base_url http://llm.example.lan:11434. That backend needs no credential, so the endpoint has to be one that needs none: a model you serve. This is not host-local, so it would want a key inside the container. ... For one you serve, that means a loopback or RFC 1918 address, or a host you have allowlisted: dejima-allow --project <path> <host> Naming it is how you say the endpoint is yours rather than a hosted API. dejima permits a configured base_url host itself, as it does the forge, so this check is not about whether it is reachable.",
   "cfg": [
    "harness=\"cline\"",
    "cline_backend=\"self-hosted\"",
@@ -3591,7 +3681,7 @@
   "step": "dejima refuses to launch",
   "verdict": "refused",
   "path": "p-launcher",
-  "detail": "The egress control for this session stopped before it was ready, so there is no filter for the sandbox to run behind. Refusing to start it. The filter said: ERROR: the internal-destination exemption names destinations nothing permits: wiki.example.lan [core] internal_domains and --internal-domain both exempt a name from the check that refuses an answer pointing inside a private network. Neither makes the name reachable - approve it as well: dejima-allow --global wiki.example.lan        # or --project An isolated launch has no approval store, so there it is a line in the file given to --domains.",
+  "detail": "The egress control for this session stopped before it was ready, so there is no filter for the sandbox to run behind. Refusing to start it. The filter said: ERROR: the internal-destination exemption names destinations nothing permits: wiki.example.lan [core] internal_domains and --internal-domain both exempt a name from the check that refuses an answer pointing inside a private network. Neither makes the name reachable - approve it as well: dejima-allow --global wiki.example.lan        # or --project An isolated launch resolves no project, so --project does nothing there; --global still counts. Unless this launch dropped the global list with --drop-domains or --require-sealed, where the file given to --domains is the only way in.",
   "cfg": [
    "internal=\"wiki.example.lan\""
   ]
@@ -3850,7 +3940,22 @@
   "step": "dejima refuses to launch",
   "verdict": "refused",
   "path": "p-launcher",
-  "detail": "harness.cline: refusing [backend.self-hosted] base_url http://llm.example.lan:11434. That backend needs no credential, so the endpoint has to be one that needs none: a model you serve. This is not host-local, so it would want a key inside the container. ... For one you serve, that means a loopback or RFC 1918 address, or a host you have allowlisted: dejima-allow --project <path> <host>",
+  "detail": "harness.cline: refusing [backend.self-hosted] base_url http://llm.example.lan:11434. That backend needs no credential, so the endpoint has to be one that needs none: a model you serve. This is not host-local, so it would want a key inside the container. ... For one you serve, that means a loopback or RFC 1918 address, or a host you have allowlisted: dejima-allow --global <host> or name it in the file you pass to --domains, which this launch reads as the same declaration. Not --project: an isolated launch resolves no project, so a project approval is not read here. Naming it is how you say the endpoint is yours rather than a hosted API. dejima permits a configured base_url host itself, as it does the forge, so this check is not about whether it is reachable.",
+  "cfg": [
+   "harness=\"cline\"",
+   "cline_backend=\"self-hosted\"",
+   "cline_model=\"set\"",
+   "base_url=\"http://llm.example.lan:11434\"",
+   "isolated=\"on\""
+  ]
+ },
+ {
+  "project": "dejima",
+  "scenario": "launch",
+  "step": "dejima refuses to launch",
+  "verdict": "refused",
+  "path": "p-launcher",
+  "detail": "harness.cline: refusing [backend.self-hosted] base_url http://llm.example.lan:11434. That backend needs no credential, so the endpoint has to be one that needs none: a model you serve. This is not host-local, so it would want a key inside the container. ... For one you serve, that means a loopback or RFC 1918 address, or a host you have allowlisted: dejima-allow --project <path> <host> Naming it is how you say the endpoint is yours rather than a hosted API. dejima permits a configured base_url host itself, as it does the forge, so this check is not about whether it is reachable.",
   "cfg": [
    "harness=\"cline\"",
    "cline_backend=\"self-hosted\"",
@@ -3878,7 +3983,7 @@
   "step": "dejima refuses to launch",
   "verdict": "refused",
   "path": "p-launcher",
-  "detail": "The egress control for this session stopped before it was ready, so there is no filter for the sandbox to run behind. Refusing to start it. The filter said: ERROR: the internal-destination exemption names destinations nothing permits: wiki.example.lan [core] internal_domains and --internal-domain both exempt a name from the check that refuses an answer pointing inside a private network. Neither makes the name reachable - approve it as well: dejima-allow --global wiki.example.lan        # or --project An isolated launch has no approval store, so there it is a line in the file given to --domains.",
+  "detail": "The egress control for this session stopped before it was ready, so there is no filter for the sandbox to run behind. Refusing to start it. The filter said: ERROR: the internal-destination exemption names destinations nothing permits: wiki.example.lan [core] internal_domains and --internal-domain both exempt a name from the check that refuses an answer pointing inside a private network. Neither makes the name reachable - approve it as well: dejima-allow --global wiki.example.lan        # or --project An isolated launch resolves no project, so --project does nothing there; --global still counts. Unless this launch dropped the global list with --drop-domains or --require-sealed, where the file given to --domains is the only way in.",
   "cfg": [
    "internal=\"wiki.example.lan\""
   ]
@@ -4233,7 +4338,22 @@
   "step": "dejima refuses to launch",
   "verdict": "refused",
   "path": "p-launcher",
-  "detail": "harness.cline: refusing [backend.self-hosted] base_url http://llm.example.lan:11434. That backend needs no credential, so the endpoint has to be one that needs none: a model you serve. This is not host-local, so it would want a key inside the container. ... For one you serve, that means a loopback or RFC 1918 address, or a host you have allowlisted: dejima-allow --project <path> <host>",
+  "detail": "harness.cline: refusing [backend.self-hosted] base_url http://llm.example.lan:11434. That backend needs no credential, so the endpoint has to be one that needs none: a model you serve. This is not host-local, so it would want a key inside the container. ... For one you serve, that means a loopback or RFC 1918 address, or a host you have allowlisted: dejima-allow --global <host> or name it in the file you pass to --domains, which this launch reads as the same declaration. Not --project: an isolated launch resolves no project, so a project approval is not read here. Naming it is how you say the endpoint is yours rather than a hosted API. dejima permits a configured base_url host itself, as it does the forge, so this check is not about whether it is reachable.",
+  "cfg": [
+   "harness=\"cline\"",
+   "cline_backend=\"self-hosted\"",
+   "cline_model=\"set\"",
+   "base_url=\"http://llm.example.lan:11434\"",
+   "isolated=\"on\""
+  ]
+ },
+ {
+  "project": "dejima",
+  "scenario": "npm",
+  "step": "dejima refuses to launch",
+  "verdict": "refused",
+  "path": "p-launcher",
+  "detail": "harness.cline: refusing [backend.self-hosted] base_url http://llm.example.lan:11434. That backend needs no credential, so the endpoint has to be one that needs none: a model you serve. This is not host-local, so it would want a key inside the container. ... For one you serve, that means a loopback or RFC 1918 address, or a host you have allowlisted: dejima-allow --project <path> <host> Naming it is how you say the endpoint is yours rather than a hosted API. dejima permits a configured base_url host itself, as it does the forge, so this check is not about whether it is reachable.",
   "cfg": [
    "harness=\"cline\"",
    "cline_backend=\"self-hosted\"",
@@ -4261,7 +4381,7 @@
   "step": "dejima refuses to launch",
   "verdict": "refused",
   "path": "p-launcher",
-  "detail": "The egress control for this session stopped before it was ready, so there is no filter for the sandbox to run behind. Refusing to start it. The filter said: ERROR: the internal-destination exemption names destinations nothing permits: wiki.example.lan [core] internal_domains and --internal-domain both exempt a name from the check that refuses an answer pointing inside a private network. Neither makes the name reachable - approve it as well: dejima-allow --global wiki.example.lan        # or --project An isolated launch has no approval store, so there it is a line in the file given to --domains.",
+  "detail": "The egress control for this session stopped before it was ready, so there is no filter for the sandbox to run behind. Refusing to start it. The filter said: ERROR: the internal-destination exemption names destinations nothing permits: wiki.example.lan [core] internal_domains and --internal-domain both exempt a name from the check that refuses an answer pointing inside a private network. Neither makes the name reachable - approve it as well: dejima-allow --global wiki.example.lan        # or --project An isolated launch resolves no project, so --project does nothing there; --global still counts. Unless this launch dropped the global list with --drop-domains or --require-sealed, where the file given to --domains is the only way in.",
   "cfg": [
    "internal=\"wiki.example.lan\""
   ]
@@ -4328,7 +4448,7 @@
   "step": "Forwarded upstream",
   "verdict": "ok",
   "path": "s-dns → bridge → fw-devbox → lan-resolver",
-  "detail": "To Docker's resolver at 127.0.0.11, then your resolver, through node rules 5-6. AAAA answers are stripped; the addresses go into an nftables set for an hour.",
+  "detail": "To Docker's resolver at 127.0.0.11, then your resolver, through node rules 5-6. AAAA answers are stripped; the addresses go into an nftables set for an hour. dnsmasq keeps no cache, so every lookup is forwarded, and one after the hour puts the addresses back.",
   "cfg": [
    "+devbox"
   ]
@@ -4339,7 +4459,7 @@
   "step": "Forwarded upstream",
   "verdict": "ok",
   "path": "s-dns → bridge → lan-resolver",
-  "detail": "To Docker's resolver at 127.0.0.11, then your resolver. AAAA answers are stripped; the addresses go into an nftables set for an hour.",
+  "detail": "To Docker's resolver at 127.0.0.11, then your resolver. AAAA answers are stripped; the addresses go into an nftables set for an hour. dnsmasq keeps no cache, so every lookup is forwarded, and one after the hour puts the addresses back.",
   "cfg": []
  },
  {
@@ -4506,7 +4626,22 @@
   "step": "dejima refuses to launch",
   "verdict": "refused",
   "path": "p-launcher",
-  "detail": "harness.cline: refusing [backend.self-hosted] base_url http://llm.example.lan:11434. That backend needs no credential, so the endpoint has to be one that needs none: a model you serve. This is not host-local, so it would want a key inside the container. ... For one you serve, that means a loopback or RFC 1918 address, or a host you have allowlisted: dejima-allow --project <path> <host>",
+  "detail": "harness.cline: refusing [backend.self-hosted] base_url http://llm.example.lan:11434. That backend needs no credential, so the endpoint has to be one that needs none: a model you serve. This is not host-local, so it would want a key inside the container. ... For one you serve, that means a loopback or RFC 1918 address, or a host you have allowlisted: dejima-allow --global <host> or name it in the file you pass to --domains, which this launch reads as the same declaration. Not --project: an isolated launch resolves no project, so a project approval is not read here. Naming it is how you say the endpoint is yours rather than a hosted API. dejima permits a configured base_url host itself, as it does the forge, so this check is not about whether it is reachable.",
+  "cfg": [
+   "harness=\"cline\"",
+   "cline_backend=\"self-hosted\"",
+   "cline_model=\"set\"",
+   "base_url=\"http://llm.example.lan:11434\"",
+   "isolated=\"on\""
+  ]
+ },
+ {
+  "project": "dejima",
+  "scenario": "push",
+  "step": "dejima refuses to launch",
+  "verdict": "refused",
+  "path": "p-launcher",
+  "detail": "harness.cline: refusing [backend.self-hosted] base_url http://llm.example.lan:11434. That backend needs no credential, so the endpoint has to be one that needs none: a model you serve. This is not host-local, so it would want a key inside the container. ... For one you serve, that means a loopback or RFC 1918 address, or a host you have allowlisted: dejima-allow --project <path> <host> Naming it is how you say the endpoint is yours rather than a hosted API. dejima permits a configured base_url host itself, as it does the forge, so this check is not about whether it is reachable.",
   "cfg": [
    "harness=\"cline\"",
    "cline_backend=\"self-hosted\"",
@@ -4534,7 +4669,7 @@
   "step": "dejima refuses to launch",
   "verdict": "refused",
   "path": "p-launcher",
-  "detail": "The egress control for this session stopped before it was ready, so there is no filter for the sandbox to run behind. Refusing to start it. The filter said: ERROR: the internal-destination exemption names destinations nothing permits: wiki.example.lan [core] internal_domains and --internal-domain both exempt a name from the check that refuses an answer pointing inside a private network. Neither makes the name reachable - approve it as well: dejima-allow --global wiki.example.lan        # or --project An isolated launch has no approval store, so there it is a line in the file given to --domains.",
+  "detail": "The egress control for this session stopped before it was ready, so there is no filter for the sandbox to run behind. Refusing to start it. The filter said: ERROR: the internal-destination exemption names destinations nothing permits: wiki.example.lan [core] internal_domains and --internal-domain both exempt a name from the check that refuses an answer pointing inside a private network. Neither makes the name reachable - approve it as well: dejima-allow --global wiki.example.lan        # or --project An isolated launch resolves no project, so --project does nothing there; --global still counts. Unless this launch dropped the global list with --drop-domains or --require-sealed, where the file given to --domains is the only way in.",
   "cfg": [
    "internal=\"wiki.example.lan\""
   ]
@@ -5032,7 +5167,22 @@
   "step": "dejima refuses to launch",
   "verdict": "refused",
   "path": "p-launcher",
-  "detail": "harness.cline: refusing [backend.self-hosted] base_url http://llm.example.lan:11434. That backend needs no credential, so the endpoint has to be one that needs none: a model you serve. This is not host-local, so it would want a key inside the container. ... For one you serve, that means a loopback or RFC 1918 address, or a host you have allowlisted: dejima-allow --project <path> <host>",
+  "detail": "harness.cline: refusing [backend.self-hosted] base_url http://llm.example.lan:11434. That backend needs no credential, so the endpoint has to be one that needs none: a model you serve. This is not host-local, so it would want a key inside the container. ... For one you serve, that means a loopback or RFC 1918 address, or a host you have allowlisted: dejima-allow --global <host> or name it in the file you pass to --domains, which this launch reads as the same declaration. Not --project: an isolated launch resolves no project, so a project approval is not read here. Naming it is how you say the endpoint is yours rather than a hosted API. dejima permits a configured base_url host itself, as it does the forge, so this check is not about whether it is reachable.",
+  "cfg": [
+   "harness=\"cline\"",
+   "cline_backend=\"self-hosted\"",
+   "cline_model=\"set\"",
+   "base_url=\"http://llm.example.lan:11434\"",
+   "isolated=\"on\""
+  ]
+ },
+ {
+  "project": "dejima",
+  "scenario": "pypi",
+  "step": "dejima refuses to launch",
+  "verdict": "refused",
+  "path": "p-launcher",
+  "detail": "harness.cline: refusing [backend.self-hosted] base_url http://llm.example.lan:11434. That backend needs no credential, so the endpoint has to be one that needs none: a model you serve. This is not host-local, so it would want a key inside the container. ... For one you serve, that means a loopback or RFC 1918 address, or a host you have allowlisted: dejima-allow --project <path> <host> Naming it is how you say the endpoint is yours rather than a hosted API. dejima permits a configured base_url host itself, as it does the forge, so this check is not about whether it is reachable.",
   "cfg": [
    "harness=\"cline\"",
    "cline_backend=\"self-hosted\"",
@@ -5060,7 +5210,7 @@
   "step": "dejima refuses to launch",
   "verdict": "refused",
   "path": "p-launcher",
-  "detail": "The egress control for this session stopped before it was ready, so there is no filter for the sandbox to run behind. Refusing to start it. The filter said: ERROR: the internal-destination exemption names destinations nothing permits: wiki.example.lan [core] internal_domains and --internal-domain both exempt a name from the check that refuses an answer pointing inside a private network. Neither makes the name reachable - approve it as well: dejima-allow --global wiki.example.lan        # or --project An isolated launch has no approval store, so there it is a line in the file given to --domains.",
+  "detail": "The egress control for this session stopped before it was ready, so there is no filter for the sandbox to run behind. Refusing to start it. The filter said: ERROR: the internal-destination exemption names destinations nothing permits: wiki.example.lan [core] internal_domains and --internal-domain both exempt a name from the check that refuses an answer pointing inside a private network. Neither makes the name reachable - approve it as well: dejima-allow --global wiki.example.lan        # or --project An isolated launch resolves no project, so --project does nothing there; --global still counts. Unless this launch dropped the global list with --drop-domains or --require-sealed, where the file given to --domains is the only way in.",
   "cfg": [
    "internal=\"wiki.example.lan\""
   ]
@@ -5306,7 +5456,22 @@
   "step": "dejima refuses to launch",
   "verdict": "refused",
   "path": "p-launcher",
-  "detail": "harness.cline: refusing [backend.self-hosted] base_url http://llm.example.lan:11434. That backend needs no credential, so the endpoint has to be one that needs none: a model you serve. This is not host-local, so it would want a key inside the container. ... For one you serve, that means a loopback or RFC 1918 address, or a host you have allowlisted: dejima-allow --project <path> <host>",
+  "detail": "harness.cline: refusing [backend.self-hosted] base_url http://llm.example.lan:11434. That backend needs no credential, so the endpoint has to be one that needs none: a model you serve. This is not host-local, so it would want a key inside the container. ... For one you serve, that means a loopback or RFC 1918 address, or a host you have allowlisted: dejima-allow --global <host> or name it in the file you pass to --domains, which this launch reads as the same declaration. Not --project: an isolated launch resolves no project, so a project approval is not read here. Naming it is how you say the endpoint is yours rather than a hosted API. dejima permits a configured base_url host itself, as it does the forge, so this check is not about whether it is reachable.",
+  "cfg": [
+   "harness=\"cline\"",
+   "cline_backend=\"self-hosted\"",
+   "cline_model=\"set\"",
+   "base_url=\"http://llm.example.lan:11434\"",
+   "isolated=\"on\""
+  ]
+ },
+ {
+  "project": "dejima",
+  "scenario": "unlisted",
+  "step": "dejima refuses to launch",
+  "verdict": "refused",
+  "path": "p-launcher",
+  "detail": "harness.cline: refusing [backend.self-hosted] base_url http://llm.example.lan:11434. That backend needs no credential, so the endpoint has to be one that needs none: a model you serve. This is not host-local, so it would want a key inside the container. ... For one you serve, that means a loopback or RFC 1918 address, or a host you have allowlisted: dejima-allow --project <path> <host> Naming it is how you say the endpoint is yours rather than a hosted API. dejima permits a configured base_url host itself, as it does the forge, so this check is not about whether it is reachable.",
   "cfg": [
    "harness=\"cline\"",
    "cline_backend=\"self-hosted\"",
@@ -5334,7 +5499,7 @@
   "step": "dejima refuses to launch",
   "verdict": "refused",
   "path": "p-launcher",
-  "detail": "The egress control for this session stopped before it was ready, so there is no filter for the sandbox to run behind. Refusing to start it. The filter said: ERROR: the internal-destination exemption names destinations nothing permits: wiki.example.lan [core] internal_domains and --internal-domain both exempt a name from the check that refuses an answer pointing inside a private network. Neither makes the name reachable - approve it as well: dejima-allow --global wiki.example.lan        # or --project An isolated launch has no approval store, so there it is a line in the file given to --domains.",
+  "detail": "The egress control for this session stopped before it was ready, so there is no filter for the sandbox to run behind. Refusing to start it. The filter said: ERROR: the internal-destination exemption names destinations nothing permits: wiki.example.lan [core] internal_domains and --internal-domain both exempt a name from the check that refuses an answer pointing inside a private network. Neither makes the name reachable - approve it as well: dejima-allow --global wiki.example.lan        # or --project An isolated launch resolves no project, so --project does nothing there; --global still counts. Unless this launch dropped the global list with --drop-domains or --require-sealed, where the file given to --domains is the only way in.",
   "cfg": [
    "internal=\"wiki.example.lan\""
   ]
@@ -6192,7 +6357,7 @@
   "step": "dejima refuses to launch",
   "verdict": "refused",
   "path": "p-launcher",
-  "detail": "harness.cline: refusing [backend.self-hosted] base_url http://llm.example.lan:11434. That backend needs no credential, so the endpoint has to be one that needs none: a model you serve. This is not host-local, so it would want a key inside the container. ... For one you serve, that means a loopback or RFC 1918 address, or a host you have allowlisted: dejima-allow --project <path> <host>",
+  "detail": "harness.cline: refusing [backend.self-hosted] base_url http://llm.example.lan:11434. That backend needs no credential, so the endpoint has to be one that needs none: a model you serve. This is not host-local, so it would want a key inside the container. ... For one you serve, that means a loopback or RFC 1918 address, or a host you have allowlisted: dejima-allow --project <path> <host> Naming it is how you say the endpoint is yours rather than a hosted API. dejima permits a configured base_url host itself, as it does the forge, so this check is not about whether it is reachable.",
   "cfg": [
    "+remote",
    "harness=\"cline\"",
@@ -6224,7 +6389,7 @@
   "step": "dejima refuses to launch",
   "verdict": "refused",
   "path": "p-launcher",
-  "detail": "The egress control for this session stopped before it was ready, so there is no filter for the sandbox to run behind. Refusing to start it. The filter said: ERROR: the internal-destination exemption names destinations nothing permits: wiki.example.lan [core] internal_domains and --internal-domain both exempt a name from the check that refuses an answer pointing inside a private network. Neither makes the name reachable - approve it as well: dejima-allow --global wiki.example.lan        # or --project An isolated launch has no approval store, so there it is a line in the file given to --domains.",
+  "detail": "The egress control for this session stopped before it was ready, so there is no filter for the sandbox to run behind. Refusing to start it. The filter said: ERROR: the internal-destination exemption names destinations nothing permits: wiki.example.lan [core] internal_domains and --internal-domain both exempt a name from the check that refuses an answer pointing inside a private network. Neither makes the name reachable - approve it as well: dejima-allow --global wiki.example.lan        # or --project An isolated launch resolves no project, so --project does nothing there; --global still counts. Unless this launch dropped the global list with --drop-domains or --require-sealed, where the file given to --domains is the only way in.",
   "cfg": [
    "+remote",
    "internal=\"wiki.example.lan\"",
@@ -6487,7 +6652,23 @@
   "step": "dejima refuses to launch",
   "verdict": "refused",
   "path": "p-launcher",
-  "detail": "harness.cline: refusing [backend.self-hosted] base_url http://llm.example.lan:11434. That backend needs no credential, so the endpoint has to be one that needs none: a model you serve. This is not host-local, so it would want a key inside the container. ... For one you serve, that means a loopback or RFC 1918 address, or a host you have allowlisted: dejima-allow --project <path> <host>",
+  "detail": "harness.cline: refusing [backend.self-hosted] base_url http://llm.example.lan:11434. That backend needs no credential, so the endpoint has to be one that needs none: a model you serve. This is not host-local, so it would want a key inside the container. ... For one you serve, that means a loopback or RFC 1918 address, or a host you have allowlisted: dejima-allow --global <host> or name it in the file you pass to --domains, which this launch reads as the same declaration. Not --project: an isolated launch resolves no project, so a project approval is not read here. Naming it is how you say the endpoint is yours rather than a hosted API. dejima permits a configured base_url host itself, as it does the forge, so this check is not about whether it is reachable.",
+  "cfg": [
+   "+remote",
+   "harness=\"cline\"",
+   "cline_backend=\"self-hosted\"",
+   "cline_model=\"set\"",
+   "base_url=\"http://llm.example.lan:11434\"",
+   "isolated=\"on\""
+  ]
+ },
+ {
+  "project": "remote",
+  "scenario": "ra-sandbox",
+  "step": "dejima refuses to launch",
+  "verdict": "refused",
+  "path": "p-launcher",
+  "detail": "harness.cline: refusing [backend.self-hosted] base_url http://llm.example.lan:11434. That backend needs no credential, so the endpoint has to be one that needs none: a model you serve. This is not host-local, so it would want a key inside the container. ... For one you serve, that means a loopback or RFC 1918 address, or a host you have allowlisted: dejima-allow --project <path> <host> Naming it is how you say the endpoint is yours rather than a hosted API. dejima permits a configured base_url host itself, as it does the forge, so this check is not about whether it is reachable.",
   "cfg": [
    "+remote",
    "harness=\"cline\"",
@@ -6517,7 +6698,7 @@
   "step": "dejima refuses to launch",
   "verdict": "refused",
   "path": "p-launcher",
-  "detail": "The egress control for this session stopped before it was ready, so there is no filter for the sandbox to run behind. Refusing to start it. The filter said: ERROR: the internal-destination exemption names destinations nothing permits: wiki.example.lan [core] internal_domains and --internal-domain both exempt a name from the check that refuses an answer pointing inside a private network. Neither makes the name reachable - approve it as well: dejima-allow --global wiki.example.lan        # or --project An isolated launch has no approval store, so there it is a line in the file given to --domains.",
+  "detail": "The egress control for this session stopped before it was ready, so there is no filter for the sandbox to run behind. Refusing to start it. The filter said: ERROR: the internal-destination exemption names destinations nothing permits: wiki.example.lan [core] internal_domains and --internal-domain both exempt a name from the check that refuses an answer pointing inside a private network. Neither makes the name reachable - approve it as well: dejima-allow --global wiki.example.lan        # or --project An isolated launch resolves no project, so --project does nothing there; --global still counts. Unless this launch dropped the global list with --drop-domains or --require-sealed, where the file given to --domains is the only way in.",
   "cfg": [
    "+remote",
    "internal=\"wiki.example.lan\""
@@ -6699,7 +6880,23 @@
   "step": "dejima refuses to launch",
   "verdict": "refused",
   "path": "p-launcher",
-  "detail": "harness.cline: refusing [backend.self-hosted] base_url http://llm.example.lan:11434. That backend needs no credential, so the endpoint has to be one that needs none: a model you serve. This is not host-local, so it would want a key inside the container. ... For one you serve, that means a loopback or RFC 1918 address, or a host you have allowlisted: dejima-allow --project <path> <host>",
+  "detail": "harness.cline: refusing [backend.self-hosted] base_url http://llm.example.lan:11434. That backend needs no credential, so the endpoint has to be one that needs none: a model you serve. This is not host-local, so it would want a key inside the container. ... For one you serve, that means a loopback or RFC 1918 address, or a host you have allowlisted: dejima-allow --global <host> or name it in the file you pass to --domains, which this launch reads as the same declaration. Not --project: an isolated launch resolves no project, so a project approval is not read here. Naming it is how you say the endpoint is yours rather than a hosted API. dejima permits a configured base_url host itself, as it does the forge, so this check is not about whether it is reachable.",
+  "cfg": [
+   "+remote",
+   "harness=\"cline\"",
+   "cline_backend=\"self-hosted\"",
+   "cline_model=\"set\"",
+   "base_url=\"http://llm.example.lan:11434\"",
+   "isolated=\"on\""
+  ]
+ },
+ {
+  "project": "remote",
+  "scenario": "ra-ssh",
+  "step": "dejima refuses to launch",
+  "verdict": "refused",
+  "path": "p-launcher",
+  "detail": "harness.cline: refusing [backend.self-hosted] base_url http://llm.example.lan:11434. That backend needs no credential, so the endpoint has to be one that needs none: a model you serve. This is not host-local, so it would want a key inside the container. ... For one you serve, that means a loopback or RFC 1918 address, or a host you have allowlisted: dejima-allow --project <path> <host> Naming it is how you say the endpoint is yours rather than a hosted API. dejima permits a configured base_url host itself, as it does the forge, so this check is not about whether it is reachable.",
   "cfg": [
    "+remote",
    "harness=\"cline\"",
@@ -6729,7 +6926,7 @@
   "step": "dejima refuses to launch",
   "verdict": "refused",
   "path": "p-launcher",
-  "detail": "The egress control for this session stopped before it was ready, so there is no filter for the sandbox to run behind. Refusing to start it. The filter said: ERROR: the internal-destination exemption names destinations nothing permits: wiki.example.lan [core] internal_domains and --internal-domain both exempt a name from the check that refuses an answer pointing inside a private network. Neither makes the name reachable - approve it as well: dejima-allow --global wiki.example.lan        # or --project An isolated launch has no approval store, so there it is a line in the file given to --domains.",
+  "detail": "The egress control for this session stopped before it was ready, so there is no filter for the sandbox to run behind. Refusing to start it. The filter said: ERROR: the internal-destination exemption names destinations nothing permits: wiki.example.lan [core] internal_domains and --internal-domain both exempt a name from the check that refuses an answer pointing inside a private network. Neither makes the name reachable - approve it as well: dejima-allow --global wiki.example.lan        # or --project An isolated launch resolves no project, so --project does nothing there; --global still counts. Unless this launch dropped the global list with --drop-domains or --require-sealed, where the file given to --domains is the only way in.",
   "cfg": [
    "+remote",
    "internal=\"wiki.example.lan\""
@@ -6992,7 +7189,23 @@
   "step": "dejima refuses to launch",
   "verdict": "refused",
   "path": "p-launcher",
-  "detail": "harness.cline: refusing [backend.self-hosted] base_url http://llm.example.lan:11434. That backend needs no credential, so the endpoint has to be one that needs none: a model you serve. This is not host-local, so it would want a key inside the container. ... For one you serve, that means a loopback or RFC 1918 address, or a host you have allowlisted: dejima-allow --project <path> <host>",
+  "detail": "harness.cline: refusing [backend.self-hosted] base_url http://llm.example.lan:11434. That backend needs no credential, so the endpoint has to be one that needs none: a model you serve. This is not host-local, so it would want a key inside the container. ... For one you serve, that means a loopback or RFC 1918 address, or a host you have allowlisted: dejima-allow --global <host> or name it in the file you pass to --domains, which this launch reads as the same declaration. Not --project: an isolated launch resolves no project, so a project approval is not read here. Naming it is how you say the endpoint is yours rather than a hosted API. dejima permits a configured base_url host itself, as it does the forge, so this check is not about whether it is reachable.",
+  "cfg": [
+   "+remote",
+   "harness=\"cline\"",
+   "cline_backend=\"self-hosted\"",
+   "cline_model=\"set\"",
+   "base_url=\"http://llm.example.lan:11434\"",
+   "isolated=\"on\""
+  ]
+ },
+ {
+  "project": "remote",
+  "scenario": "ra-web",
+  "step": "dejima refuses to launch",
+  "verdict": "refused",
+  "path": "p-launcher",
+  "detail": "harness.cline: refusing [backend.self-hosted] base_url http://llm.example.lan:11434. That backend needs no credential, so the endpoint has to be one that needs none: a model you serve. This is not host-local, so it would want a key inside the container. ... For one you serve, that means a loopback or RFC 1918 address, or a host you have allowlisted: dejima-allow --project <path> <host> Naming it is how you say the endpoint is yours rather than a hosted API. dejima permits a configured base_url host itself, as it does the forge, so this check is not about whether it is reachable.",
   "cfg": [
    "+remote",
    "harness=\"cline\"",
@@ -7022,7 +7235,7 @@
   "step": "dejima refuses to launch",
   "verdict": "refused",
   "path": "p-launcher",
-  "detail": "The egress control for this session stopped before it was ready, so there is no filter for the sandbox to run behind. Refusing to start it. The filter said: ERROR: the internal-destination exemption names destinations nothing permits: wiki.example.lan [core] internal_domains and --internal-domain both exempt a name from the check that refuses an answer pointing inside a private network. Neither makes the name reachable - approve it as well: dejima-allow --global wiki.example.lan        # or --project An isolated launch has no approval store, so there it is a line in the file given to --domains.",
+  "detail": "The egress control for this session stopped before it was ready, so there is no filter for the sandbox to run behind. Refusing to start it. The filter said: ERROR: the internal-destination exemption names destinations nothing permits: wiki.example.lan [core] internal_domains and --internal-domain both exempt a name from the check that refuses an answer pointing inside a private network. Neither makes the name reachable - approve it as well: dejima-allow --global wiki.example.lan        # or --project An isolated launch resolves no project, so --project does nothing there; --global still counts. Unless this launch dropped the global list with --drop-domains or --require-sealed, where the file given to --domains is the only way in.",
   "cfg": [
    "+remote",
    "internal=\"wiki.example.lan\""

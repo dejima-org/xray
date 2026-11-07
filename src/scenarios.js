@@ -123,7 +123,7 @@ export function scenarios(cfg, d) {
       npmDropped ? (d.sealed ? 'Sealed: dnsmasq has no upstream to forward anything to.' : '--drop-domains dropped the built-in list. The name is answered locally and never leaves.')
         : 'On the built-in list, so it is forwarded.', ['drop', 'sealed']),
     !npmDropped && step(['s-dns', 'bridge', ...nodeFw, 'lan-resolver'], 'ok', 'Forwarded upstream',
-      `To Docker's resolver at 127.0.0.11, then your resolver${dv ? ', through node rules 5-6' : ''}. AAAA answers are stripped; the addresses go into an nftables set for an hour.`, []),
+      `To Docker's resolver at 127.0.0.11, then your resolver${dv ? ', through node rules 5-6' : ''}. AAAA answers are stripped; the addresses go into an nftables set for an hour. dnsmasq keeps no cache, so every lookup is forwarded, and one after the hour puts the addresses back.`, []),
     !npmDropped && step(['s-harness', 'g-nft', ...out('net-npm')], 'ok', 'Connect on 443', 'The address is in the set, so nftables accepts it.', []),
   ]));
 
@@ -409,7 +409,7 @@ export function scenarios(cfg, d) {
       !refusedHere && step(['p-dn-launch', 'dn-share', 'p-dn-launch', ...nodeFw, 'p-dn-api'], 'ok', 'Fetch the zip', 'darner walks ~/shared by fd, regular files only, and builds the zip itself; the API rebuilds it again.', []),
     ];
     if (matrix) add('darner', 'dn-matrix', 'Send a task from Matrix', [
-      step(['ph-matrix', 'net-matrix', 'mb-bot'], 'ok', '@dragonlet fix the flaky test', 'The sender must be on the bot\'s allowlist; anyone else is ignored silently. The bot reacts ⏳.', ['dn_front']),
+      step(['ph-matrix', 'net-matrix', 'mb-bot'], 'ok', '@darner fix the flaky test', 'The sender must be on the bot\'s allowlist; anyone else is ignored silently. The bot reacts ⏳.', ['dn_front']),
       step(['mb-bot', 'p-dn-api'], 'ok', 'POST /v1/tasks', `With the bot's own bearer token. It replies "Started dn-k3x7q → darner:dn-k3x7q"${startedLink}, and reacts ✅. A task the API itself refuses gets "Failed: …" and ❌ instead.`, ['dn_ra']),
       ...middle('matrix'),
       !refusedHere && step(['mb-bot', 'p-dn-api'], 'ok', 'GET /v1/events', 'The bot polls for events and acks each one.', []),

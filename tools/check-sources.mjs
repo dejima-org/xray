@@ -15,9 +15,10 @@ const sources = JSON.parse(readFileSync(new URL('../sources.json', import.meta.u
 
 const refs = repo => execFileSync('git', ['ls-remote', '--refs', `${forge}${repo}.git`], { encoding: 'utf8', timeout: 60000, stdio: ['ignore', 'pipe', 'ignore'] })
   .trim().split('\n').map(l => l.split('\t')).map(([sha, ref]) => ({ sha, ref }));
+const order = (a, b) => a.replace(/^v/, '').localeCompare(b.replace(/^v/, ''), undefined, { numeric: true });
 const released = list => list.filter(r => r.ref.startsWith('refs/tags/')).map(r => r.ref.slice(10))
   .filter(t => /^v?\d+(\.\d+)+[a-z]?$/.test(t))
-  .sort((a, b) => a.replace(/^v/, '').localeCompare(b.replace(/^v/, ''), undefined, { numeric: true }));
+  .sort(order);
 
 let behind = 0;
 for (const [name, pin] of Object.entries(sources)) {
@@ -28,7 +29,9 @@ for (const [name, pin] of Object.entries(sources)) {
   const notes = [];
   if (pin.release) {
     if (latest && latest.replace(/^v/, '') !== pin.release) notes.push(`release ${latest} is out; the picture shows ${pin.release}`);
-  } else if (latest && pin.version && latest.replace(/^v/, '') !== pin.version) {
+  } else if (latest && pin.version && order(latest, pin.version) >= 0) {
+    // An unreleased pin is due once its own version is tagged, so it can move
+    // to the release. Until then the latest release is older than it.
     notes.push(`release ${latest} is out; the picture shows ${pin.version} from ${pin.ref}`);
   }
   if (!pin.release && head && head !== pin.commit) notes.push(`${pin.ref} has moved: ${pin.commit.slice(0, 7)} -> ${head.slice(0, 7)}`);

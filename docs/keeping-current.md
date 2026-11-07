@@ -12,6 +12,8 @@ The picture makes claims about security boundaries, so a claim that has drifted 
 
 `make sources` says which pins have fallen behind. It needs read access to the forge; `XRAY_FORGE=git@<forge>:` points it at an SSH remote instead of the public HTTPS one.
 
+**Ahead of a release**, while dejima's and darner's release passes are under way, the picture can be checked against their `development` and pinned there as unreleased: `release` null, the coming `version`, `ref` `development`, and the commit. The page then says "unreleased". Once the releases are tagged, `make sources` says so: triage what landed between the pinned commit and the tag, then pin the releases.
+
 ## 1. Triage
 
 This is the cheap step, and most updates end here.
