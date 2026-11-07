@@ -409,7 +409,7 @@ export function scenarios(cfg, d) {
       !refusedHere && step(['p-dn-launch', 'dn-share', 'p-dn-launch', ...nodeFw, 'p-dn-api'], 'ok', 'Fetch the zip', 'darner walks ~/shared by fd, regular files only, and builds the zip itself; the API rebuilds it again.', []),
     ];
     if (matrix) add('darner', 'dn-matrix', 'Send a task from Matrix', [
-      step(['ph-matrix', 'net-matrix', 'mb-bot'], 'ok', '@dragonlet fix the flaky test', 'The sender must be on the bot\'s allowlist; anyone else is ignored silently. The bot reacts ⏳.', ['dn_front']),
+      step(['ph-matrix', 'net-matrix', 'mb-bot'], 'ok', '@darner fix the flaky test', 'The sender must be on the bot\'s allowlist; anyone else is ignored silently. The bot reacts ⏳.', ['dn_front']),
       step(['mb-bot', 'p-dn-api'], 'ok', 'POST /v1/tasks', `With the bot's own bearer token. It replies "Started dn-k3x7q → darner:dn-k3x7q"${startedLink}, and reacts ✅. A task the API itself refuses gets "Failed: …" and ❌ instead.`, ['dn_ra']),
       ...middle('matrix'),
       !refusedHere && step(['mb-bot', 'p-dn-api'], 'ok', 'GET /v1/events', 'The bot polls for events and acks each one.', []),

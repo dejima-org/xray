@@ -266,7 +266,7 @@ export function derive(cfg) {
   ], { info: info('darner-api and darner-web, under compose. It reaches the launcher over SSH with a forced-command key, whether on one machine or across two.', []) });
 
   const maubot = on.darner && cfg.dn_front.includes('maubot') && box('maubot', 'machine', 'maubot server', [
-    leaf('mb-bot', 'proc', 'dragonlet plugin', { sub: 'polls /v1/events',
+    leaf('mb-bot', 'proc', 'darner\'s Matrix bot', { sub: 'a maubot plugin; polls /v1/events',
       info: info('Matrix ID allowlist plus its own bearer token. Posts results as notices and the zip as a file.', ['dn_front']) }),
   ], { info: info('Any maubot instance that can reach darner-api.', []) });
 
