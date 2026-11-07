@@ -260,8 +260,8 @@ export function exempt(e) {
   return x;
 }
 
-// cline's host check reads the approval stores, global and (outside --isolated)
-// project, not --domains.
+// cline's host check reads the global store, the project's (outside
+// --isolated), and --domains, which the picture does not model.
 function llmApproved(e) { return e.global.includes('llm.example.lan') || (e.isolated !== 'on' && e.allowed.includes('llm.example.lan')); }
 
 // The first thing dejima would refuse, in the order it checks. Each is an
@@ -280,14 +280,16 @@ export function refusal(e) {
     }
   }
   if (e.llmByName && !llmApproved(e))
-    return `harness.cline: refusing [backend.self-hosted] base_url ${e.base_url}. That backend needs no credential, so the endpoint has to be one that needs none: a model you serve. This is not host-local, so it would want a key inside the container. ... For one you serve, that means a loopback or RFC 1918 address, or a host you have allowlisted: dejima-allow --project <path> <host>`;
+    return `harness.cline: refusing [backend.self-hosted] base_url ${e.base_url}. That backend needs no credential, so the endpoint has to be one that needs none: a model you serve. This is not host-local, so it would want a key inside the container. ... For one you serve, that means a loopback or RFC 1918 address, or a host you have allowlisted: ${e.isolated === 'on'
+      ? 'dejima-allow --global <host> or name it in the file you pass to --domains, which this launch reads as the same declaration. Not --project: an isolated launch resolves no project, so a project approval is not read here.'
+      : 'dejima-allow --project <path> <host>'} Naming it is how you say the endpoint is yours rather than a hosted API. dejima permits a configured base_url host itself, as it does the forge, so this check is not about whether it is reachable.`;
   if (e.sealed === 'on') {
     if (e.firewall === 'off') return '--require-sealed needs the egress firewall, and [core] firewall is off for this launch. Nothing would be bounding the session, so there is no sealed state for it to be in.';
     if (e.harness === 'claude-code') return '--require-sealed cannot be met by the claude-code harness. It reaches its model by a name of its own, which every launch permits whatever else is dropped, so the resolver always has an upstream: platform.claude.com';
   }
   const p = permitted(e).map(x => x.name);
   if (e.firewall === 'on' && e.internal !== 'unset' && !p.includes(e.internal) && e.drop !== 'on')
-    return `The egress control for this session stopped before it was ready, so there is no filter for the sandbox to run behind. Refusing to start it. The filter said: ERROR: the internal-destination exemption names destinations nothing permits: ${e.internal} [core] internal_domains and --internal-domain both exempt a name from the check that refuses an answer pointing inside a private network. Neither makes the name reachable - approve it as well: dejima-allow --global ${e.internal}        # or --project An isolated launch has no approval store, so there it is a line in the file given to --domains.`;
+    return `The egress control for this session stopped before it was ready, so there is no filter for the sandbox to run behind. Refusing to start it. The filter said: ERROR: the internal-destination exemption names destinations nothing permits: ${e.internal} [core] internal_domains and --internal-domain both exempt a name from the check that refuses an answer pointing inside a private network. Neither makes the name reachable - approve it as well: dejima-allow --global ${e.internal}        # or --project An isolated launch resolves no project, so --project does nothing there; --global still counts. Unless this launch dropped the global list with --drop-domains or --require-sealed, where the file given to --domains is the only way in.`;
   if (e.firewall === 'on') {
     const x = exempt(e);
     const bad = p.filter(n => PRIVATE.includes(n) && !x.has(n));
