@@ -6,6 +6,9 @@ import { Stage, selecting } from './render.js';
 const $ = s => document.querySelector(s);
 const el = (tag, cls, text) => { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; };
 
+// Restarts the glow, so each pick says where to look even when one follows another.
+const glow = n => { n.classList.remove('glow'); void n.offsetWidth; n.classList.add('glow'); };
+
 const state = { cfg: load(), picked: null, scenario: null, step: 0, playing: false, speed: 1, run: 0, fit: true };
 let derived, list = [];
 
@@ -233,7 +236,7 @@ async function play(id, from = 0, auto = true) {
     stage.mark(st.path, 'lit');
     focus(st.path);
     stage.mark(st.loud ? [st.path[st.path.length - 1]] : [], 'paged');
-    await stage.travel(st.path, st.verdict, state.speed, { title: st.title, step: st, loud: !!st.loud });
+    await stage.travel(st.path, st.verdict, state.speed, { title: st.title, n: i + 1, of: s.steps.length, detail: st.detail, step: st, loud: !!st.loud });
     if (run !== state.run) return;
     gone.push(...(st.gone || [])); kept.push(...(st.kept || []));
     stage.mark(gone, 'gone'); stage.mark(kept, 'kept');
@@ -273,6 +276,7 @@ function pick(id) {
   stage.mark([id], 'picked');
   renderInspector();
   tab('side', true);
+  glow($('.inspect'));
 }
 
 function pickLine(line) {
@@ -280,6 +284,7 @@ function pickLine(line) {
   stage.mark([], 'picked');
   renderInspector();
   tab('side', true);
+  glow($('.inspect'));
   // A step's line is also a way back to that step.
   const i = line.kind === 'step' ? current()?.steps.indexOf(line.step) : -1;
   if (i >= 0 && i !== state.step) play(state.scenario, i, false);

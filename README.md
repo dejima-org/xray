@@ -32,6 +32,13 @@ An interactive diagram of what dejima and its sister projects do: which componen
 
 Settings are named as you would write them (`[core] internal_domains`, `--require-sealed`, `/etc/dejima-ci/pools`). Choices are fixed example values, not free text. The URL carries the current configuration, so a link reproduces the picture.
 
+## Who it is for
+
+- **Anyone wanting the whole of dejima at once:** every part, as a system, and how the parts fit together.
+- **Sysadmins planning a deployment:** what each setting and sister project changes about what runs where and what is reachable.
+- **Troubleshooters:** step through a request to see where it stops, and why.
+- **Prospective users:** play the scenarios that match their own needs and see how dejima behaves in each.
+
 **→ [SECURITY.md](SECURITY.md)**: why a wrong verdict is the risk here, and how to report one or a vulnerability.
 
 ## Preview
