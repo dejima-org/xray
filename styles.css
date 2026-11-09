@@ -205,8 +205,8 @@ h2, h3, h4 { font-weight: 500; margin: 0; }
 .chip:hover { border-color: var(--key); }
 
 .inspect { border-bottom: 1px solid var(--rule); border-radius: 8px; padding: .5rem .5rem 1rem; margin: -.5rem -.5rem 1rem; }
-/* Says where to look: a ring of the accent that goes out and fades. */
-.glow { animation: glow 1.1s ease-out 2; }
+/* Says where to look: one ring of the accent that goes out and fades. */
+.glow { animation: glow 1.1s ease-out; }
 @keyframes glow {
   from { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 70%, transparent), var(--rest-shadow, 0 0 #0000); }
   to { box-shadow: 0 0 0 12px color-mix(in srgb, var(--accent) 0%, transparent), var(--rest-shadow, 0 0 #0000); }
