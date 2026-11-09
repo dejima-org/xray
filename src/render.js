@@ -217,9 +217,9 @@ export class Stage {
   clearTrails() { this.trails.replaceChildren(); this.caption?.remove(); this.caption = null; }
 
   // Draw one step: its line fades in whole, arrowed towards where it ends,
-  // with the step's title beside the end. `instant` draws it already dimmed,
+  // with the step's number, title, and detail beside the end. `instant` draws it already dimmed,
   // for steps passed. Resolves once it has been on screen long enough to read.
-  travel(ids, verdict, speed = 1, { instant = false, title = '', step = null, loud = false } = {}) {
+  travel(ids, verdict, speed = 1, { instant = false, title = '', n = 0, of = 0, detail = '', step = null, loud = false } = {}) {
     const pts = ids.map(id => this.point(id)).filter(Boolean);
     if (!pts.length) return Promise.resolve();
     for (const t of this.trails.children) t.classList.add('old');
@@ -250,18 +250,21 @@ export class Stage {
       g.append(ring);
     }
     if (instant) { g.classList.add('old'); return Promise.resolve(); }
-    if (title) this.captionAt(title, verdict, path, end, loud);
+    if (title) this.captionAt({ title, n, of, detail }, verdict, path, end, loud);
     if (!reduced()) g.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 380, easing: 'ease-out' });
     return wait(900 / speed);
   }
 
   // The caption sits beside the end of the line, on whichever side of it
   // covers least of the picture, and stays where it was put.
-  captionAt(title, verdict, path, end, loud = false) {
+  captionAt({ title, n, of, detail }, verdict, path, end, loud = false) {
     this.caption?.remove();
     const el = document.createElement('div');
-    el.className = `caption v-${verdict}${loud ? ' loud' : ''}`;
-    el.textContent = title;
+    el.className = `caption glow v-${verdict}${loud ? ' loud' : ''}`;
+    const part = (cls, text) => { const p = document.createElement('div'); p.className = cls; p.textContent = text; el.append(p); };
+    if (n) part('cap-n', `Step ${n} of ${of}`);
+    part('cap-title', title);
+    if (detail) part('cap-detail', detail);
     el.setAttribute('aria-hidden', 'true');
     this.world.append(el);
     this.caption = el;

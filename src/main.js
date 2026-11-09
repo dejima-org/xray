@@ -236,7 +236,7 @@ async function play(id, from = 0, auto = true) {
     stage.mark(st.path, 'lit');
     focus(st.path);
     stage.mark(st.loud ? [st.path[st.path.length - 1]] : [], 'paged');
-    await stage.travel(st.path, st.verdict, state.speed, { title: st.title, step: st, loud: !!st.loud });
+    await stage.travel(st.path, st.verdict, state.speed, { title: st.title, n: i + 1, of: s.steps.length, detail: st.detail, step: st, loud: !!st.loud });
     if (run !== state.run) return;
     gone.push(...(st.gone || [])); kept.push(...(st.kept || []));
     stage.mark(gone, 'gone'); stage.mark(kept, 'kept');
