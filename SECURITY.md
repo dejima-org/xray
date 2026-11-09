@@ -20,7 +20,7 @@ Every verdict here is a claim, checked against the code by the people who wrote 
 
 Email **report@dejima.page**. Please don't open a public issue for a vulnerability; a report there is a disclosure.
 
-The organisation-wide policy, including what you can expect in return and which versions are supported, is [dejima's SECURITY.md](https://gitbox.branderson.io/dejima/dejima/src/branch/main/SECURITY.md). In short: only the tip of `main`, which is what is served, is supported, and nothing is promised.
+The organisation-wide policy, including what you can expect in return and which versions are supported, is [dejima's SECURITY.md](https://github.com/dejima-org/dejima/blob/main/SECURITY.md). In short: only the tip of `main`, which is what is served, is supported, and nothing is promised.
 
 ## No warranty
 
