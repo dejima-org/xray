@@ -7,10 +7,11 @@ const SVG = 'http://www.w3.org/2000/svg';
 const reduced = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 export class Stage {
-  constructor(world, onPick, onPickLine) {
+  constructor(world, onPick, onPickLine, onPickStep) {
     this.world = world;
     this.onPick = onPick;
     this.onPickLine = onPickLine;
+    this.onPickStep = onPickStep;
     this.els = new Map();
     this.nodes = new Map();
     this.scale = 1;
@@ -251,6 +252,7 @@ export class Stage {
     }
     if (instant) { g.classList.add('old'); return Promise.resolve(); }
     if (title) this.captionAt({ title, n, of, detail }, verdict, path, end, loud);
+    this.caption?.addEventListener('click', ev => { ev.stopPropagation(); if (!selecting()) this.onPickStep(step); });
     if (!reduced()) g.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 380, easing: 'ease-out' });
     return wait(900 / speed);
   }

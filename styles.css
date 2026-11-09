@@ -429,7 +429,7 @@ h2, h3, h4 { font-weight: 500; margin: 0; }
 .anchor.l-rw, .anchor.l-ro, .anchor.l-socket, .anchor.l-reads { fill: var(--fg-dim); stroke-dasharray: none; } .anchor.l-warn { fill: var(--warn); stroke-dasharray: none; }
 .anchor.v-ok { fill: var(--ok); } .anchor.v-refused { fill: var(--refused); } .anchor.v-warn { fill: var(--warn); } .anchor.v-info { fill: var(--info); }
 .caption {
-  position: absolute; top: 0; left: 0; z-index: 6; pointer-events: none;
+  position: absolute; top: 0; left: 0; z-index: 6; cursor: pointer;
   max-width: 360px; padding: 6px 11px 8px; border-radius: 6px;
   background: color-mix(in srgb, var(--bg-well) 94%, transparent); border: 1px solid var(--rule-strong); border-left: 3px solid var(--info);
   line-height: 1.3; color: var(--fg);

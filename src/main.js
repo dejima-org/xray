@@ -13,7 +13,7 @@ const state = { cfg: load(), picked: null, scenario: null, step: 0, playing: fal
 let derived, list = [];
 
 const wrap = $('#stage-wrap'), sizer = $('#sizer'), world = $('#world');
-const stage = new Stage(world, id => pick(id), line => pickLine(line));
+const stage = new Stage(world, id => pick(id), line => pickLine(line), st => pickStep(st));
 
 // ---- config persistence: the URL carries what differs from the defaults ---
 function load() {
@@ -288,6 +288,15 @@ function pickLine(line) {
   // A step's line is also a way back to that step.
   const i = line.kind === 'step' ? current()?.steps.indexOf(line.step) : -1;
   if (i >= 0 && i !== state.step) play(state.scenario, i, false);
+}
+
+// A step's card in the picture points to that step in the list.
+function pickStep(st) {
+  const li = $('#trace .steps')?.children[current()?.steps.indexOf(st)];
+  if (!li) return;
+  tab('side', true);
+  li.scrollIntoView({ block: 'nearest', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+  glow(li);
 }
 
 const VERDICT = { ok: 'Allowed', refused: 'Refused', warn: 'Allowed, with a caveat', info: 'What happens here' };
