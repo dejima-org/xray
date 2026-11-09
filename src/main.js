@@ -347,6 +347,10 @@ function fit() {
   setScale(Math.max(s, matchMedia('(max-width: 760px)').matches ? 0.42 : 0.2), false);
   wrap.scrollLeft = 0;
 }
+$('#key-toggle').addEventListener('click', ev => {
+  const open = $('#legend').classList.toggle('open');
+  ev.currentTarget.setAttribute('aria-expanded', open);
+});
 $('#zoom-in').addEventListener('click', () => { state.fit = false; setScale(stage.scale * 1.25); });
 $('#zoom-out').addEventListener('click', () => { state.fit = false; setScale(stage.scale / 1.25); });
 $('#zoom-fit').addEventListener('click', fit);
