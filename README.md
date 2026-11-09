@@ -18,9 +18,15 @@
      inline and indents the image by one space. -->
 &nbsp;
 
-&nbsp;<img src="assets/dejima-wordmark-darkmode.png" alt="dejima" height="72">
+&nbsp;<picture><source media="(prefers-color-scheme: dark)" srcset="assets/dejima-wordmark-darkmode.png"><img src="assets/dejima-wordmark-lightmode.png" alt="dejima" height="72"></picture>
 
 ---
+
+> **This is a read-only mirror.** Development happens on the forge its
+> maintainer runs, which takes no accounts, issues or pull requests;
+> [this repository](https://gitbox.branderson.io/dejima/xray) is
+> public to read there. Issues and pull requests are off here too. See
+> [CONTRIBUTING.md](https://github.com/dejima-org/dejima/blob/main/CONTRIBUTING.md).
 
 &nbsp;
 
@@ -28,7 +34,7 @@
 
 An interactive diagram of what dejima and its sister projects do: which component runs where, which wall bounds it, and where each request is stopped. Turn on a sister project or change a setting and the picture redraws at once. Pick something to happen and a packet walks its real path, with each hop explained.
 
-[![Developed in dejima](assets/dejima-badge.svg)](https://gitbox.branderson.io/dejima/dejima)
+[![Developed in dejima](assets/dejima-badge.svg)](https://github.com/dejima-org/dejima)
 
 Settings are named as you would write them (`[core] internal_domains`, `--require-sealed`, `/etc/dejima-ci/pools`). Choices are fixed example values, not free text. The URL carries the current configuration, so a link reproduces the picture.
 
@@ -71,7 +77,7 @@ LAN addresses are private-range examples (`10.0.0.0/24`), because dejima's priva
 
 GPL-3.0-or-later, as dejima and darner. See [LICENSE](LICENSE). The settings, refusals, and messages the picture quotes are dejima's and its sister projects', under the same licence.
 
-The dejima wordmark and logo are not code and are not covered by that licence. They are trademarks; who holds them and what may be done with them is stated once for the organisation, at [dejima's ATTRIBUTION.md](https://gitbox.branderson.io/dejima/dejima/src/branch/main/ATTRIBUTION.md).
+The dejima wordmark and logo are not code and are not covered by that licence. They are trademarks; who holds them and what may be done with them is stated once for the organisation, at [dejima's ATTRIBUTION.md](https://github.com/dejima-org/dejima/blob/main/ATTRIBUTION.md).
 
 ## Deploy
 
@@ -114,7 +120,7 @@ install -d -o site-deploy -g site-deploy -m 755 /srv/www/xray.dejima.page
 # clone's .git/config. Needs git 2.31+.
 export GIT_AUTH="Authorization: token $(cat /etc/site-deploy/token)"
 git --config-env=http.extraHeader=GIT_AUTH clone --depth 1 --filter=blob:none --sparse \
-    https://gitbox.branderson.io/dejima/xray.git /usr/local/src/dejima-xray
+    https://github.com/dejima-org/xray.git /usr/local/src/dejima-xray
 git --config-env=http.extraHeader=GIT_AUTH -C /usr/local/src/dejima-xray sparse-checkout set deploy
 unset GIT_AUTH
 cd /usr/local/src/dejima-xray
