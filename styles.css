@@ -204,7 +204,13 @@ h2, h3, h4 { font-weight: 500; margin: 0; }
 .chip code { color: var(--key); }
 .chip:hover { border-color: var(--key); }
 
-.inspect { border-bottom: 1px solid var(--rule); padding-bottom: 1rem; margin-bottom: 1rem; }
+.inspect { border-bottom: 1px solid var(--rule); border-radius: 8px; padding: .5rem .5rem 1rem; margin: -.5rem -.5rem 1rem; }
+/* Says where to look: a ring of the accent that goes out and fades. */
+.glow { animation: glow 1.1s ease-out 2; }
+@keyframes glow {
+  from { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 70%, transparent), var(--rest-shadow, 0 0 #0000); }
+  to { box-shadow: 0 0 0 12px color-mix(in srgb, var(--accent) 0%, transparent), var(--rest-shadow, 0 0 #0000); }
+}
 .inspect h3 { font-size: 1.1rem; }
 .inspect h4 { font-size: .8rem; color: var(--fg-faint); margin: .9rem 0 .35rem; }
 .ins-sub.v-ok { color: var(--ok); } .ins-sub.v-refused { color: var(--refused); } .ins-sub.v-warn { color: var(--warn); } .ins-sub.v-info { color: var(--info); }

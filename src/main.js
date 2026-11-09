@@ -6,6 +6,9 @@ import { Stage, selecting } from './render.js';
 const $ = s => document.querySelector(s);
 const el = (tag, cls, text) => { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; };
 
+// Restarts the glow, so each pick says where to look even when one follows another.
+const glow = n => { n.classList.remove('glow'); void n.offsetWidth; n.classList.add('glow'); };
+
 const state = { cfg: load(), picked: null, scenario: null, step: 0, playing: false, speed: 1, run: 0, fit: true };
 let derived, list = [];
 
@@ -273,6 +276,7 @@ function pick(id) {
   stage.mark([id], 'picked');
   renderInspector();
   tab('side', true);
+  glow($('.inspect'));
 }
 
 function pickLine(line) {
@@ -280,6 +284,7 @@ function pickLine(line) {
   stage.mark([], 'picked');
   renderInspector();
   tab('side', true);
+  glow($('.inspect'));
   // A step's line is also a way back to that step.
   const i = line.kind === 'step' ? current()?.steps.indexOf(line.step) : -1;
   if (i >= 0 && i !== state.step) play(state.scenario, i, false);
