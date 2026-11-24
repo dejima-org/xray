@@ -87,7 +87,7 @@ export const KEYS = [
 
   { id: 'loki', project: 'dejima', group: 'Records', where: '~/.config/dejima/config', key: '[logging] loki_url',
     opts: [{ v: 'unset' }, { v: 'http://loki.example.lan:3100' }], def: 'unset',
-    effect: 'Ships every lookup and connection to Loki, from the host, by the dejima-log-ship user unit. The session is never told the address and no allowlist names it, since Loki answers reads for every project. Unset, nothing leaves.' },
+    effect: 'Ships every lookup and connection to Loki, from the host, by the dejima-log-ship user unit. The session is never told the address and no allowlist names it, since Loki answers reads as well as writes. Unset, nothing leaves.' },
   { id: 'conversation', project: 'dejima', group: 'Records', where: '~/.config/dejima/config', key: '[logging] conversation',
     opts: onOff, def: 'off', show: c => c.loki !== 'unset',
     effect: 'Also ships prompts and tool calls, from the host, where the session cannot stop it.' },
@@ -100,7 +100,7 @@ export const KEYS = [
     effect: 'Web is nginx and ttyd; SSH is a phone key whose forced command is dejima-attach.' },
   { id: 'ra_ntfy', project: 'remote', group: 'Front doors', where: '~/.config/dejima/config', key: '[remote-access] ntfy_url',
     opts: [{ v: 'unset' }, { v: 'https://ntfy.example.lan:8443/dejima' }], def: 'unset',
-    effect: 'Where dejima-notify-watch posts when a session finishes or needs input. Unset, the watcher will not start. A public ntfy server needs no devbox pinhole.' },
+    effect: 'Where dejima-notify-watch posts when a session finishes. A token belongs in ntfy_token_file: with credentials in the URL as well, the watcher refuses to start. Unset, the watcher will not start. A public ntfy server needs no devbox pinhole.' },
   { id: 'ra_base', project: 'remote', group: 'Front doors', where: '~/.config/dejima/config', key: '[remote-access] base_url',
     opts: [{ v: 'unset' }, { v: 'https://dejima.example.lan' }], def: 'unset',
     effect: 'Adds a tap-to-attach link to each push, whichever front doors exist.' },
@@ -114,7 +114,7 @@ export const KEYS = [
     effect: 'Optional, outside the twelve base rules. notify-watch runs on the VM, so without 6b a push to a LAN ntfy is dropped as LAN traffic.' },
   { id: 'dv_6c', project: 'devbox', group: 'Node firewall', where: 'Proxmox security group', key: 'rule 6c (Loki pinhole)', setup: true,
     opts: onOff, def: 'off', show: c => c.loki !== 'unset',
-    effect: 'Optional, outside the twelve base rules. The log shipper runs on the VM, so without 6c every push to a LAN Loki is dropped as LAN traffic, and all three streams go quiet together.' },
+    effect: 'Optional, outside the twelve base rules. The log shipper runs on the VM, so without 6c every push to a LAN Loki is dropped as LAN traffic, and every stream it ships goes quiet together.' },
 
   // ci-hardener
   { id: 'ci_tiers', project: 'ci', group: 'Runners', where: 'dejima-ci-bootstrap --role', key: 'tiers', setup: true,
@@ -266,16 +266,20 @@ export function exempt(e) {
 // --isolated), and --domains, which the picture does not model.
 function llmApproved(e) { return e.global.includes('llm.example.lan') || (e.isolated !== 'on' && e.allowed.includes('llm.example.lan')); }
 
+// What the launcher prints ahead of the filter's own log when the policy
+// refuses. Paragraph breaks are dejima's own.
+const FILTER_STOPPED = 'The egress control for this session stopped before it was ready, so there is no filter for the sandbox to run behind. Refusing to start it.\n\nIt did not run out of time - it is no longer running. Usually that is the policy refusing, and the reason is the last line before the ERROR below; it can also be the container dying for a reason of its own, in which case the output stops without one.\n\nWhat the filter container said:\n';
+
 // The first thing dejima would refuse, in the order it checks. Each is an
 // exit, so only one is ever printed.
 export function refusal(e) {
   if (e.workflow === 'worktree-pr' && e.forge === 'none')
-    return "workflow 'worktree-pr' requires the 'pr' capability, and [core] forge = none has none.";
+    return "workflow 'worktree-pr' requires the 'pr' capability, which forge 'none' does not provide (it offers: none).";
   if (e.pushes && e.forge === 'none')
-    return `[core] workflow = ${e.workflow} pushes, and [core] forge = none gives it nowhere to push.`;
+    return `workflow '${e.workflow}' pushes, but forge 'none' has no host to push to and nothing to configure. Select a forge that has one ([core] forge = github needs no host configured), or a workflow that does not push (workflow = local-only).`;
   if (e.harness === 'cline') {
-    if (e.cline_model === 'unset') return 'harness.cline: no model is configured. Cline has no default worth dejima choosing for you, and any id shipped here would go stale with the next Cline release. Set one: [harness.cline] model = claude-haiku-4-5-20251001. `cline auth` outside the sandbox lists what your backend offers.';
-    if (e.backend === 'unset') return 'harness.cline: no [harness.cline] backend is set, so nothing says where the model is. There is deliberately no default.';
+    if (e.cline_model === 'unset') return 'harness.cline: no model is configured.\nCline has no default worth dejima choosing for you, and any id shipped here would go stale with the next Cline release. Set one:\n\n  [harness.cline]\n  model = claude-haiku-4-5-20251001\n\n`cline auth` outside the sandbox lists what your backend offers.';
+    if (e.backend === 'unset') return 'harness.cline: no [harness.cline] backend is set, so nothing says where the model is.\n\n  [harness.cline]\n  backend = openrouter      a hosted API, key held on the host\n  backend = self-hosted     a model you serve, with no key at all\n\nThere is deliberately no default: one dejima could change later would move your session to another endpoint without your config changing.';
     if (!e.selfHosted) {
       if (e.proxy === 'off') return 'harness.cline: the proxy is off for this backend, and cline has no way to reach a proxied backend without the TLS terminator the proxy puts in front of it. Its credential lives in the providers.json dejima declines to mount, so there is nothing to fall back to - unlike claude-code, which mounts the real credential in that mode. Either turn the proxy back on with the default tls transport, or select a backend you serve yourself.';
       if (e.transport === 'loopback') return 'harness.cline: [credentials] transport is loopback, and cline has no way to reach a proxied backend without the TLS terminator the proxy puts in front of it. Its credential lives in the providers.json dejima declines to mount, so there is nothing to fall back to - unlike claude-code, which mounts the real credential in that mode. Either turn the proxy back on with the default tls transport, or select a backend you serve yourself.';
@@ -287,16 +291,16 @@ export function refusal(e) {
       : 'dejima-allow --project <path> <host>'} Naming it is how you say the endpoint is yours rather than a hosted API. dejima permits a configured base_url host itself, as it does the forge, so this check is not about whether it is reachable.`;
   if (e.sealed === 'on') {
     if (e.firewall === 'off') return '--require-sealed needs the egress firewall, and [core] firewall is off for this launch. Nothing would be bounding the session, so there is no sealed state for it to be in.';
-    if (e.harness === 'claude-code') return '--require-sealed cannot be met by the claude-code harness. It reaches its model by a name of its own, which every launch permits whatever else is dropped, so the resolver always has an upstream: platform.claude.com';
+    if (e.harness === 'claude-code') return '--require-sealed cannot be met by the claude-code harness.\n\nIt reaches its model by a name of its own, which every launch permits whatever else is dropped, so the resolver always has an upstream:\n\n    platform.claude.com\n\nA sealed session needs a harness that names no model API of its own; cline names none. Set one with --harness, or [core] harness. Refusing before the build rather than after it, since nothing about this launch could change it.';
   }
   const p = permitted(e).map(x => x.name);
   if (e.firewall === 'on' && e.internal !== 'unset' && !p.includes(e.internal) && e.drop !== 'on')
-    return `The egress control for this session stopped before it was ready, so there is no filter for the sandbox to run behind. Refusing to start it. The filter said: ERROR: the internal-destination exemption names destinations nothing permits: ${e.internal} [core] internal_domains and --internal-domain both exempt a name from the check that refuses an answer pointing inside a private network. Neither makes the name reachable - approve it as well: dejima-allow --global ${e.internal}        # or --project An isolated launch resolves no project, so --project does nothing there; --global still counts. Unless this launch dropped the global list with --drop-domains or --require-sealed, where the file given to --domains is the only way in.`;
+    return `${FILTER_STOPPED}    ERROR: the internal-destination exemption names destinations nothing permits: ${e.internal} [core] internal_domains and --internal-domain both exempt a name from the check that refuses an answer pointing inside a private network. Neither makes the name reachable - approve it as well: dejima-allow --global ${e.internal}        # or --project An isolated launch resolves no project, so --project does nothing there; --global still counts. Unless this launch dropped the global list with --drop-domains or --require-sealed, where the file given to --domains is the only way in.`;
   if (e.firewall === 'on') {
     const x = exempt(e);
     const bad = p.filter(n => PRIVATE.includes(n) && !x.has(n));
     if (bad.length)
-      return `The egress control for this session stopped before it was ready. The filter said: check 7: these permitted names are answered with an address inside a private network, and this policy refuses such answers: ${bad.map(n => `${n} (open/strict)`).join(' ')}. That is this configuration disagreeing with itself - list them in [core] internal_domains (or --internal-domain, for one launch) if pointing inside is intended, or remove them.`;
+      return `${FILTER_STOPPED}    [egress-policy] FAILED: check 7: these permitted names are answered with an address inside a private network, and this policy refuses such answers: ${bad.map(n => `${n} (open/strict)`).join(' ')}. That is this configuration disagreeing with itself - list them in [core] internal_domains (or --internal-domain, for one launch) if pointing inside is intended, or remove them.`;
   }
   if (e.sealed === 'on' && p.length) return `--require-sealed: this session did not seal. Refusing to start it. A name is permitted, so the resolver has an upstream and the session can look names up: ${permitted(e).map(x => `${x.name}  (${x.cls === 'github' ? 'forge' : x.cls} class)`).join(' ')}. Each was named by this launch - the project's approved domains, --domains, the harness's model API. A model reached by an address needs no name.`;
   return null;

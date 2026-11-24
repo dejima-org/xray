@@ -288,7 +288,7 @@ export function derive(cfg) {
     leaf('lan-nas', 'svc', 'NAS 10.0.0.40', { sub: 'everything else', info: info('Stands in for the rest of your network: what an escape would go looking for.', []) }),
     ((on.remote && cfg.ra_ntfy !== 'unset') || (on.guard && cfg.gd_alert === 'ntfy_url')) && leaf('lan-ntfy', 'svc', 'ntfy :8443', { sub: '10.0.0.50',
       info: info('A dedicated ntfy-only listener. If it shared the reverse proxy on 443, a pinhole to it would open every vhost behind that proxy.', ['ra_ntfy', 'dv_6b']) }),
-    e.loki !== 'unset' && leaf('lan-loki', 'svc', 'loki.example.lan', { sub: '10.0.0.60', info: info('Receives the dejima-dns, dejima-net, and dejima-conversation streams, from the host. Its API answers reads for every stream it holds, which is why no session may reach it.', ['loki', 'dv_6c']) }),
+    e.loki !== 'unset' && leaf('lan-loki', 'svc', 'loki.example.lan', { sub: '10.0.0.60', info: info('Receives the dejima-dns, dejima-net, and dejima-conversation streams, from the host. Its API answers reads as well as writes, which is why no session may reach it.', ['loki', 'dv_6c']) }),
     on.guard && cfg.gd_hb !== 'unset' && leaf('lan-kuma', 'svc', 'Uptime Kuma', { sub: 'push monitor, 1200 s',
       info: info('Fires when the guard\'s heartbeat stops: a dead guard is an alert too.', ['gd_hb']) }),
   ]);

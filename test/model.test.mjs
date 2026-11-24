@@ -83,7 +83,7 @@ test('dejima refusals match dejima\'s own checks', () => {
   const cline = { harness: 'cline', cline_model: 'set', cline_backend: 'anthropic' };
   assert.equal(r({}).length, 0);
   // provider checks come first
-  assert.match(r({ workflow: 'branch-push' })[0], /nowhere to push/);
+  assert.match(r({ workflow: 'branch-push' })[0], /has no host to push to/);
   assert.match(r({ workflow: 'worktree-pr' })[0], /'pr' capability/);
   assert.equal(r({ workflow: 'branch-push', isolated: 'on' }).length, 0, '--isolated forces local-only');
   // cline has no default model, and refuses before anything else of its own
