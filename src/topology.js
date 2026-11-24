@@ -103,11 +103,11 @@ export function derive(cfg) {
         : 'Plain HTTP on loopback, pointed at by ANTHROPIC_BASE_URL. Still ends at the same socket.', ['transport']) }),
     leaf('s-guards', 'proc', 'git + forge guards', { sub: e.pushes ? `push: ${e.forge} branches only` : 'every push refused',
       info: info('PATH shadows that fail fast. Not the boundary: the network is.', ['workflow', 'forge'],
-        ['Refuses pushes to main or master, and to any host not in DEJIMA_PUSH_HOSTS.', 'Blocks merges and adds an agent-written marker to PR and issue bodies.']) }),
+        ['Refuses pushes to main or master, and to any host not in DEJIMA_PUSH_HOSTS.', 'Blocks merges and adds an agent-written marker to PR, issue, and comment bodies.']) }),
     box('c-mounts', 'group', 'mounts', mounts),
   ], { sub: 'joins the filter\'s namespace', tone: refused.length ? 'ghost' : undefined,
     info: info('Where the agent runs. It has no network namespace of its own and no network capability, so it cannot change the rules, even as root.',
-      ['harness', 'isolated'], ['No sudo, no Docker socket, no ptrace, no IPv6.', 'Same uid, gid, and home path as you.']) });
+      ['harness', 'isolated'], ['No sudo, no Docker socket, no CAP_SYS_PTRACE, no IPv6.', 'strace is in the image: the session can trace its own processes, but not ssh-agent, which marks itself untraceable, or the init, which is another uid.', 'Same uid, gid, and home path as you.']) });
 
   const netns = box('netns', 'netns', 'one network namespace', [session, filter], {
     info: info('network_mode: container:dejima-filter-…: both containers share one network stack and one loopback.', ['firewall']) });
@@ -133,7 +133,7 @@ export function derive(cfg) {
       info: info('Builds the image, starts the proxy, the network, the filter, then the session, and tears all of it down on exit.', []) }),
     e.proxied && leaf('p-proxy', 'proc', 'credential proxy', { sub: `→ ${e.apiHost}`,
       info: info('A host process on a per-session unix socket. Swaps the placeholder for the real credential and connects upstream from the host.',
-        ['proxy', 'backend', 'cline_backend'], ['Errors come back as a dejima-written 502, so provider bodies stay on the host.']) }),
+        ['proxy', 'backend', 'cline_backend'], ['Errors come back as a dejima-written 502, so provider bodies stay on the host.', 'Records the provider\'s token counts for each model call in ~/.local/share/dejima/usage, outside every mount. dejima-usage prints them, and the totals show when the session ends.']) }),
     e.loki !== 'unset' && leaf('p-shipper', 'proc', 'dejima-log-ship', { sub: 'user unit',
       info: info(`One per host. Ships the lookup and connection records${e.conversation === 'on' ? ', and the prompts and tool calls,' : ''} from the host, where the session cannot reach Loki or stop its own oversight log.`, ['loki', 'conversation'],
         ['Not installed by install.sh. With loki_url set and this unit not running, a launch says so, and nothing reaches Loki.']) }),
@@ -150,7 +150,8 @@ export function derive(cfg) {
       info: info('Validates the 16-hex run id, opens a throwaway grouped tmux session on that window.', [],
         ['That is a host shell, one prefix key away. Both doors are as strong as the auth in front of them.']) }),
     on.darner && leaf('p-dn-launch', 'proc', 'darner-launch', { sub: 'ssh forced command',
-      info: info('Runs dejima --isolated in a tmux window per task and reports status. A fixed command grammar; anything else is refused.', ['dn_answers']) }),
+      info: info('Runs dejima --isolated in a tmux window per task and reports status. A fixed command grammar; anything else is refused.', ['dn_answers'],
+        ['Passes --ignore-extra-args, so a flag this dejima does not know is dropped and reported. A --no-, --drop-, --require-, or --strict- flag is never dropped: the launch is refused instead.']) }),
     on.devbox && leaf('p-audit', 'proc', 'dejima-devbox-audit', { sub: 'reach, hourly',
       info: info('Probes the gateway on 443, 80, and 22 and expects silence, with the forge as a positive control.', [],
         ['PASS needs every probe to time out and the positive control to succeed. Anything answering is FAIL.', 'The IPv6 half fails on any global or ULA address, or any neighbour answering ff02::1.',
@@ -260,10 +261,11 @@ export function derive(cfg) {
     cfg.dn_front.includes('darner-web') && leaf('dn-proxy', 'gate', 'auth proxy', { sub: 'VPN, Basic, mTLS…',
       info: info('darner-web has no login of its own. Whatever authenticates here is the whole gate.', ['dn_front']) }),
     cfg.dn_front.includes('darner-web') && leaf('p-dn-web', 'proc', 'darner-web :8081', { sub: 'stores nothing',
-      info: info('Its own origin, never a path on the remote-access host. CSRF header plus Origin checks.', ['dn_front']) }),
+      info: info('Its own origin, never a path on the remote-access host. CSRF header plus Origin checks.', ['dn_front'],
+        ['With ntfy_url in web.toml, it pushes to its own ntfy topic on output, a help request, or a domain request. A push names the session and links to it, and carries nothing the agent wrote.']) }),
     leaf('p-dn-api', 'proc', 'darner-api :8080', { sub: 'polls every 30 s',
       info: info('The only thing frontends talk to. A bearer token per frontend, SQLite for open tasks, and an ssh key locked to darner-launch.', ['dn_front'],
-        ['No per-user permissions: anyone a frontend lets in can use every harness and backend on the dejima host.']) }),
+        ['No per-user permissions: anyone a frontend lets in can use every harness and backend on the dejima host.', 'With keep_input on, a task or message ticked Keep has its first 8 KiB kept in the database, readable by everyone who can use darner-web.']) }),
   ], { info: info('darner-api and darner-web, under compose. It reaches the launcher over SSH with a forced-command key, whether on one machine or across two.', []) });
 
   const maubot = on.darner && cfg.dn_front.includes('maubot') && box('maubot', 'machine', 'maubot server', [
