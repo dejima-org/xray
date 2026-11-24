@@ -87,7 +87,7 @@ export const KEYS = [
 
   { id: 'loki', project: 'dejima', group: 'Records', where: '~/.config/dejima/config', key: '[logging] loki_url',
     opts: [{ v: 'unset' }, { v: 'http://loki.example.lan:3100' }], def: 'unset',
-    effect: 'Ships every lookup and connection to Loki. Unset, nothing leaves.' },
+    effect: 'Ships every lookup and connection to Loki, from the host, by the dejima-log-ship user unit. The session is never told the address and no allowlist names it, since Loki answers reads for every project. Unset, nothing leaves.' },
   { id: 'conversation', project: 'dejima', group: 'Records', where: '~/.config/dejima/config', key: '[logging] conversation',
     opts: onOff, def: 'off', show: c => c.loki !== 'unset',
     effect: 'Also ships prompts and tool calls, from the host, where the session cannot stop it.' },
@@ -112,6 +112,9 @@ export const KEYS = [
   { id: 'dv_6b', project: 'devbox', group: 'Node firewall', where: 'Proxmox security group', key: 'rule 6b (ntfy pinhole)', setup: true,
     opts: onOff, def: 'off',
     effect: 'Optional, outside the twelve base rules. notify-watch runs on the VM, so without 6b a push to a LAN ntfy is dropped as LAN traffic.' },
+  { id: 'dv_6c', project: 'devbox', group: 'Node firewall', where: 'Proxmox security group', key: 'rule 6c (Loki pinhole)', setup: true,
+    opts: onOff, def: 'off', show: c => c.loki !== 'unset',
+    effect: 'Optional, outside the twelve base rules. The log shipper runs on the VM, so without 6c every push to a LAN Loki is dropped as LAN traffic, and all three streams go quiet together.' },
 
   // ci-hardener
   { id: 'ci_tiers', project: 'ci', group: 'Runners', where: 'dejima-ci-bootstrap --role', key: 'tiers', setup: true,
@@ -246,7 +249,6 @@ export function permitted(e) {
   if (!drop && e.forge === 'gitea') add('git.example.lan', 'configured forge, internal-exempt');
   if (!drop) for (const d of e.global) add(d, 'global approval');
   if (e.isolated !== 'on') for (const d of e.allowed) add(d, 'project approval');
-  if (e.loki !== 'unset') add('loki.example.lan', 'Loki host, internal-exempt');
   return out;
 }
 
@@ -254,7 +256,7 @@ export function permitted(e) {
 // launch exempts from refusing that without being told.
 const PRIVATE = ['wiki.example.lan', 'llm.example.lan', 'git.example.lan', 'loki.example.lan'];
 export function exempt(e) {
-  const x = new Set(['git.example.lan', 'loki.example.lan']);
+  const x = new Set(['git.example.lan']);
   if (e.internal !== 'unset') x.add(e.internal);
   if (e.llmByName) x.add('llm.example.lan');
   return x;

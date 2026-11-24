@@ -63,8 +63,8 @@ export function derive(cfg) {
         : 'The only resolver the session has. A permitted name is forwarded; anything else is answered locally and never leaves.',
         ['drop', 'sealed', 'allowed', 'internal'],
         names.length ? ['Forwarded: ' + names.map(n => `${n.name} (${n.why})`).join('; ')] : ['Forwarded: nothing.']) }),
-    fw && leaf('s-logs', 'svc', 'connection + lookup loggers', { sub: e.loki !== 'unset' ? 'shipped to Loki' : 'kept local',
-      info: info('ulogd2 and dns-lookup-log record every lookup and every new connection attempt, allowed or refused.', ['loki']) }),
+    fw && leaf('s-logs', 'svc', 'connection + lookup loggers', { sub: e.loki !== 'unset' ? 'written to the host' : 'kept local',
+      info: info(`ulogd2 and dns-lookup-log record every lookup and every new connection attempt, allowed or refused.${e.loki !== 'unset' ? ' Nothing here pushes: the records go to a directory on the host, for the shipper there.' : ''}`, ['loki']) }),
   ], { sub: `dejima-filter-${RUN.slice(0, 6)}…`,
     info: info('Owns the network namespace and holds the only network privileges. Nothing the session runs executes here.',
       ['firewall'], ['cap_drop ALL; its only network capabilities are NET_ADMIN and NET_RAW.', 'Killing it leaves the session with loopback only.']) });
@@ -134,8 +134,9 @@ export function derive(cfg) {
     e.proxied && leaf('p-proxy', 'proc', 'credential proxy', { sub: `→ ${e.apiHost}`,
       info: info('A host process on a per-session unix socket. Swaps the placeholder for the real credential and connects upstream from the host.',
         ['proxy', 'backend', 'cline_backend'], ['Errors come back as a dejima-written 502, so provider bodies stay on the host.']) }),
-    e.conversation === 'on' && leaf('p-shipper', 'proc', 'conversation shipper', { sub: 'host side',
-      info: info('Ships prompts and tool calls from the host, where the session cannot kill its own oversight log.', ['conversation']) }),
+    e.loki !== 'unset' && leaf('p-shipper', 'proc', 'dejima-log-ship', { sub: 'user unit',
+      info: info(`One per host. Ships the lookup and connection records${e.conversation === 'on' ? ', and the prompts and tool calls,' : ''} from the host, where the session cannot reach Loki or stop its own oversight log.`, ['loki', 'conversation'],
+        ['Not installed by install.sh. With loki_url set and this unit not running, a launch says so, and nothing reaches Loki.']) }),
     on.remote && e.ra_ntfy !== 'unset' && leaf('p-notify', 'proc', 'dejima-notify-watch', { sub: 'user unit',
       info: info('Watches the marker directories and posts to ntfy. Runs on the host, so the session\'s allowlist never sees this traffic.', ['ra_ntfy']) }),
     nginxNeeded(cfg) && leaf('p-nginx', 'proc', 'nginx 10.0.0.24:443', { sub: 'TLS + auth',
@@ -208,7 +209,7 @@ export function derive(cfg) {
   const vms = [];
   if (on.devbox) vms.push(box('vm-devbox', 'vm', hostLabel, [
     leaf('fw-devbox', 'gate', 'node firewall', { sub: 'dejima-devbox-hardener', wall: true,
-      info: info('The Proxmox security group on this VM\'s tap device. The guest cannot reach it, even as root.', ['dv_addr', 'dv_6b'],
+      info: info('The Proxmox security group on this VM\'s tap device. The guest cannot reach it, even as root.', ['dv_addr', 'dv_6b', 'dv_6c'],
         devboxRules(cfg).map(r => `${r.n}  ${r.dir} ${r.act} ${r.what}`)) }),
     hostNode,
   ], { info: info('4 cores, x86-64-v3 (Cline needs AVX2), 16 GB, 128 GB. One person\'s work per devbox.', []) }));
@@ -285,7 +286,7 @@ export function derive(cfg) {
     leaf('lan-nas', 'svc', 'NAS 10.0.0.40', { sub: 'everything else', info: info('Stands in for the rest of your network: what an escape would go looking for.', []) }),
     ((on.remote && cfg.ra_ntfy !== 'unset') || (on.guard && cfg.gd_alert === 'ntfy_url')) && leaf('lan-ntfy', 'svc', 'ntfy :8443', { sub: '10.0.0.50',
       info: info('A dedicated ntfy-only listener. If it shared the reverse proxy on 443, a pinhole to it would open every vhost behind that proxy.', ['ra_ntfy', 'dv_6b']) }),
-    e.loki !== 'unset' && leaf('lan-loki', 'svc', 'loki.example.lan', { sub: '10.0.0.60', info: info('Receives dejima-dns, dejima-net, and dejima-conversation streams.', ['loki']) }),
+    e.loki !== 'unset' && leaf('lan-loki', 'svc', 'loki.example.lan', { sub: '10.0.0.60', info: info('Receives the dejima-dns, dejima-net, and dejima-conversation streams, from the host. Its API answers reads for every stream it holds, which is why no session may reach it.', ['loki', 'dv_6c']) }),
     on.guard && cfg.gd_hb !== 'unset' && leaf('lan-kuma', 'svc', 'Uptime Kuma', { sub: 'push monitor, 1200 s',
       info: info('Fires when the guard\'s heartbeat stops: a dead guard is an alert too.', ['gd_hb']) }),
   ]);
@@ -324,6 +325,7 @@ export function derive(cfg) {
     link('f-cred', 'p-proxy', 'reads', 'The proxy reads the real credential on the host. It never enters the container.', ['proxy', 'backend', 'cline_backend']);
   }
   if (!e.selfHosted && e.proxy === 'off') link('f-cred', 'm-cred', 'warn', 'With [credentials] proxy = off, the real credential file is mounted into the container, where the agent can read it.', ['proxy']);
+  if (e.loki !== 'unset' && fw) link('s-logs', 'p-shipper', 'rw', 'The filter container writes its two records into a per-run directory bind-mounted from the host. The session container has no mount of it.', ['loki']);
   if (on.remote && cfg.ra_ntfy !== 'unset') link('m-notify', 'p-notify', 'rw', 'The session\'s marker directory, watched from the host. A hook writes an empty done or waiting file; the watcher turns it into a push.', ['ra_ntfy']);
   return { root, edges, e, refused, sealed, names };
 }
@@ -383,6 +385,7 @@ export function devboxRules(cfg) {
     { n: '5-6', dir: 'OUT', act: 'ACCEPT', what: 'udp+tcp/53 to the resolver' },
     cfg.dv_addr === 'dhcp' && { n: '6a', dir: 'OUT', act: 'ACCEPT', what: 'udp/67 (DHCP)' },
     cfg.dv_6b === 'on' && { n: '6b', dir: 'OUT', act: 'ACCEPT', what: 'tcp/8443 to an ntfy-only listener (on a shared proxy\'s 443 it would open every vhost behind it)' },
+    cfg.dv_6c === 'on' && cfg.loki !== 'unset' && { n: '6c', dir: 'OUT', act: 'ACCEPT', what: 'tcp/3100 to a Loki-only listener, for the host-side log shipper' },
     { n: '7-9', dir: 'OUT', act: 'DROP', what: '10/8, 172.16/12, 192.168/16 (logged)' },
     { n: '10', dir: 'OUT', act: 'DROP', what: '169.254/16 (logged)' },
     { n: '11', dir: 'OUT', act: 'DROP', what: '100.64/10 (logged)' },

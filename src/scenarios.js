@@ -162,8 +162,23 @@ export function scenarios(cfg, d) {
     step(['s-harness', 's-dns', 'bridge', ...nodeFw, 'lan-resolver'], 'ok', 'Look up wiki.example.lan',
       `Permitted by ${approvedBy('wiki.example.lan')}, and exempt in [core] internal_domains, so its answer, 10.0.0.30, is accepted and goes into internal_ok_v4. Without the exemption the launch itself would have been refused.`, ['internal']),
     step(['s-harness', 'g-nft', 'bridge', ...(dv ? ['fw-devbox'] : ['lan-wiki'])], dv ? 'refused' : 'ok', dv ? 'dejima allows it; the node does not' : 'Connect',
-      dv ? 'Rules 7-9 drop 10/8 on the Proxmox node, outside the guest. Only the forge and the resolver (and ntfy, with 6b) are pinholed. The drop is logged.' : 'Accepted.', ['internal']),
+      dv ? 'Rules 7-9 drop 10/8 on the Proxmox node, outside the guest. Only the forge and the resolver (and ntfy with 6b, Loki with 6c) are pinholed. The drop is logged.' : 'Accepted.', ['internal']),
   ]));
+
+  // Loki: written to the host, shipped from there, and out of the session's reach.
+  if (e.loki !== 'unset' && fw) {
+    const lokiDropped = dv && cfg.dv_6c === 'off';
+    add('dejima', 'loki-ship', 'Ship the records to Loki', guard([
+      step(['s-logs', 'p-shipper'], 'ok', 'Records land on the host', 'The filter writes every lookup and connection into a per-run directory bind-mounted from the host. Nothing in a container pushes.', ['loki']),
+      step(['p-shipper', ...nodeFw, ...(lokiDropped ? [] : ['lan-loki'])], lokiDropped ? 'refused' : 'ok', 'Push to Loki',
+        dv ? (lokiDropped ? 'dejima-log-ship runs on the VM, so its push is LAN traffic: rules 7-9 drop it. All three streams go quiet together, which looks like a devbox nobody used.' : 'Rule 6c opens the Loki port to that one host, above the DROPs.')
+          : `From the host, by the one dejima-log-ship unit${e.conversation === 'on' ? ', with the transcripts too' : ''}.`, ['loki', 'conversation', 'dv_6c']),
+    ]));
+    add('dejima', 'loki-read', 'Read the logs at Loki', guard([
+      step(['s-harness', 's-dns'], 'refused', 'Look up loki.example.lan', 'Not permitted: no launch permits the Loki host, and no container is told its address. Loki answers reads for every project\'s streams, so a session that could push there could read them all.', ['loki']),
+      step(['s-harness', 'g-nft'], 'refused', 'Try its address directly', '10.0.0.60 is in no set, so nftables answers with a TCP reset. The launcher offers Loki no exception to the host clamp either, so a Loki on the host itself is closed too.', ['loki']),
+    ]));
+  }
 
   // Files
   add('dejima', 'files', 'Read and write files', guard([
@@ -220,7 +235,7 @@ export function scenarios(cfg, d) {
   const iso = e.isolated === 'on';
   add('dejima', 'close', 'Close the session', guard([
     step(['c-session'], 'info', 'The session container is removed', 'compose run --rm: its filesystem is gone.', [], { gone: ['c-session'] }),
-    e.proxied && step(['p-proxy'], 'info', 'The proxy stops', 'Its log is summarised on your terminal, when there is anything in it: errors, auth failures, and what to do about them.', [], { gone: ['p-proxy', 'p-shipper'] }),
+    e.proxied && step(['p-proxy'], 'info', 'The proxy stops', 'Its log is summarised on your terminal, when there is anything in it: errors, auth failures, and what to do about them.', [], { gone: ['p-proxy'] }),
     step(['p-launcher'], 'info', 'The per-run copies are deleted', 'Host-side temp files that were bind-mounted in: the staged ~/.claude.json, the gitconfig copy, the settings overlay, any fake credential, the proxy\'s socket directory.', []),
     step(['c-filter'], 'info', 'The filter and the network go', 'docker rm -f the filter, docker network rm dejima-run-…. Live dejima-allow --container grants die with them.', [], { gone: ['docker'] }),
     iso && step(['f-project'], 'info', 'The session\'s volumes are removed', 'The work volume and its history and editor volumes: an isolated session keeps nothing it was not told to.', [], { gone: ['f-project'] }),
