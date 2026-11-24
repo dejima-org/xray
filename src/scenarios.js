@@ -243,8 +243,8 @@ export function scenarios(cfg, d) {
       : step(['p-launcher', 'f-stores'], 'ok', 'The epitaph is saved', 'If the session compacted, its summaries are copied host-side, to the epitaph store.', ['epitaph'])),
     !iso && step(['p-launcher', 'f-project'], 'info', 'The exit-time audit runs', 'It diffs .git/config, hooks, .mcp.json, .envrc, and friends against the launch snapshot. A new core.hooksPath or credential.helper is CRITICAL.', []),
     step(['f-share'], 'ok', 'What is left',
-      iso ? `The share, if the agent wrote to it.${e.keep === 'on' ? ` --keep-records also kept the epitaph${e.conversation === 'on' ? ', and the conversation log went to Loki' : ''}.` : ''}${e.loki !== 'unset' ? ' Its lookups and connections, at Loki.' : ''}${e.proxied ? ' Its token-usage record, for at least 30 days.' : ''}`
-        : `The project, ~/shared, writable mounts, the harness's per-project state and its editor and shell-history volumes, ${e.epitaph === 'on' ? 'epitaphs, ' : ''}and the audit's findings, if it found any.${e.proxied ? ' The token-usage record, for at least 30 days.' : ''}`, [],
+      iso ? `The share, if the agent wrote to it.${e.keep === 'on' && (e.conversation === 'on' || (e.epitaph === 'on' && !cline)) ? ` --keep-records also kept ${[e.epitaph === 'on' && !cline && 'the epitaph', e.conversation === 'on' && 'the conversation log, for Loki'].filter(Boolean).join(', and ')}.` : ''}${e.loki !== 'unset' ? ' Its lookups and connections, at Loki.' : ''}${e.proxied ? ' Its token-usage record, for at least 30 days.' : ''}`
+        : `The project, ~/shared, writable mounts, the harness's per-project state and its editor and shell-history volumes, ${e.epitaph === 'on' ? 'epitaphs, ' : ''}and the audit's findings, if it found any.${e.loki !== 'unset' ? ' Its lookups and connections, at Loki.' : ''}${e.proxied ? ' The token-usage record, for at least 30 days.' : ''}`, [],
       { kept: ['f-project', 'f-share', 'f-rw', 'f-rwpp', 'f-stores'].filter(x => !(iso && x === 'f-project')) }),
   ]));
 
@@ -440,7 +440,7 @@ export function scenarios(cfg, d) {
       step([...hop, 'dn-share'], 'ok', 'Picked up by the next poll', 'A help event goes to the frontend that started the task.', []),
       cfg.dn_answers === 'on'
         ? step([...hop, 'dn-harness'], 'ok', 'Your answer is typed in', `--answers: pasted bracketed, control characters stripped, then Enter${h === 'cline' ? '; at cline\'s question prompt it is typed as keys, on one line' : ''}.`, ['dn_answers'])
-        : step(['p-dn-api'], 'info', 'No answering from chat', `${matrix ? `Matrix says ${metered ? '"Used <n> in, <n> out since the last notice.", then ' : ''}${link ? '"Open the session to respond", with the link.' : '"Attach to darner:dn-k3x7q to respond."'} A plain reply is ignored; one that mentions the bot gets "Failed: answering from chat is not enabled on this host" and ❌. ` : ''}${webUi ? 'darner-web still shows an answer box, and sending is refused: answering from chat is not enabled on this host.' : ''}`, ['dn_answers', 'dn_ra']),
+        : step(['p-dn-api'], 'info', 'No answering from chat', `${matrix ? `Matrix says ${metered ? '"Used <n> in (<n> cached), <n> out since the last notice.", then ' : ''}${link ? '"Open the session to respond", with the link.' : '"Attach to darner:dn-k3x7q to respond."'} A plain reply is ignored; one that mentions the bot gets "Failed: answering from chat is not enabled on this host" and ❌. ` : ''}${webUi ? 'darner-web still shows an answer box, and sending is refused: answering from chat is not enabled on this host.' : ''}`, ['dn_answers', 'dn_ra']),
     ]);
   }
 
