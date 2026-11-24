@@ -31,7 +31,7 @@ export const KEYS = [
   { id: 'base_url', project: 'dejima', group: 'Agent', where: '~/.config/dejima/config', key: '[backend.self-hosted] base_url',
     opts: [{ v: 'http://10.0.0.10:11434', label: 'an address' }, { v: 'http://llm.example.lan:11434', label: 'a name' }],
     def: 'http://10.0.0.10:11434', show: c => backendOf(c) === 'self-hosted',
-    effect: 'An address is permitted as-is, no DNS. A name must already be approved, globally or by the project, and needs the resolver, so the session cannot seal.' },
+    effect: 'Permitted on the URL\'s port alone (11434 here), not the rest of the host. An address needs no DNS. A name must already be approved, globally or by the project, and needs the resolver, so the session cannot seal.' },
   { id: 'proxy', project: 'dejima', group: 'Agent', where: '~/.config/dejima/config', key: '[credentials] proxy',
     opts: onOff, def: 'on', show: c => backendOf(c) !== 'self-hosted',
     effect: 'off mounts the real credential file into the container. Only claude-code can run that way; cline refuses.' },
@@ -245,7 +245,7 @@ export function permitted(e) {
   }
   if (e.harness === 'claude-code') add('platform.claude.com', 'claude-code api_domains');
   if (!e.selfHosted && e.proxy === 'off') add(e.apiHost, 'proxy off: the API name joins the open list');
-  if (e.llmByName && llmApproved(e)) add('llm.example.lan', 'self-hosted base_url, internal-exempt');
+  if (e.llmByName && llmApproved(e)) add('llm.example.lan', 'self-hosted base_url, port 11434 only, internal-exempt', 'scoped');
   if (!drop && e.forge === 'gitea') add('git.example.lan', 'configured forge, internal-exempt');
   if (!drop) for (const d of e.global) add(d, 'global approval');
   if (e.isolated !== 'on') for (const d of e.allowed) add(d, 'project approval');
@@ -298,7 +298,7 @@ export function refusal(e) {
     if (bad.length)
       return `The egress control for this session stopped before it was ready. The filter said: check 7: these permitted names are answered with an address inside a private network, and this policy refuses such answers: ${bad.map(n => `${n} (open/strict)`).join(' ')}. That is this configuration disagreeing with itself - list them in [core] internal_domains (or --internal-domain, for one launch) if pointing inside is intended, or remove them.`;
   }
-  if (e.sealed === 'on' && p.length) return `--require-sealed: this session did not seal. Refusing to start it. A name is permitted, so the resolver has an upstream and the session can look names up: ${p.map(n => `${n}  (open class)`).join(' ')}. Each was named by this launch - the project's approved domains, --domains, the harness's model API, the log endpoint. A model reached by an address needs no name; --no-log drops the log endpoint.`;
+  if (e.sealed === 'on' && p.length) return `--require-sealed: this session did not seal. Refusing to start it. A name is permitted, so the resolver has an upstream and the session can look names up: ${permitted(e).map(x => `${x.name}  (${x.cls === 'github' ? 'forge' : x.cls} class)`).join(' ')}. Each was named by this launch - the project's approved domains, --domains, the harness's model API. A model reached by an address needs no name.`;
   return null;
 }
 

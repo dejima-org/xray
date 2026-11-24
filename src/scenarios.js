@@ -92,9 +92,9 @@ export function scenarios(cfg, d) {
   ] : [
     e.llmByName
       ? step(['s-harness', 's-dns', 'bridge', ...nodeFw, 'lan-resolver'], 'ok', 'Look up llm.example.lan',
-          'The name had to be approved before cline would launch. As the base_url host it is then permitted and internal-exempt, so its private answer is accepted, and the resolver keeps an upstream.', ['base_url', 'allowed', 'global'])
+          'The name had to be approved before cline would launch. As the base_url host it is then permitted on port 11434 only, though it is also an approved domain: the narrower grant wins. It is internal-exempt, so its private answer is accepted, and the resolver keeps an upstream.', ['base_url', 'allowed', 'global'])
       : step(['s-harness', 'g-nft'], 'ok', '10.0.0.10 is permitted by address',
-          'An IPv4 base_url goes straight into the literal set. No DNS, so no answer to check, and internal_domains does not apply.', ['base_url']),
+          'An IPv4 base_url goes into a set reachable on port 11434 only. No DNS, so no answer to check, and internal_domains does not apply.', ['base_url']),
     step(['s-harness', 'g-nft', 'bridge', ...(dv ? ['fw-devbox'] : ['lan-llm'])], dv ? 'refused' : 'ok', dv ? 'The node firewall drops it' : 'Straight to the model',
       dv ? 'dejima allows it, but the devbox may only reach the forge and the resolver on the LAN. Rules 7-9 drop 10/8. A LAN model needs its own pinhole above the DROPs.'
         : 'No credential exists, so there is no proxy and no placeholder. The request crosses nftables like any other permitted connection.', ['backend', 'cline_backend']),
