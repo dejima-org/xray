@@ -243,7 +243,7 @@ export function scenarios(cfg, d) {
       : step(['p-launcher', 'f-stores'], 'ok', 'The epitaph is saved', 'If the session compacted, its summaries are copied host-side, to the epitaph store.', ['epitaph'])),
     !iso && step(['p-launcher', 'f-project'], 'info', 'The exit-time audit runs', 'It diffs .git/config, hooks, .mcp.json, .envrc, and friends against the launch snapshot. A new core.hooksPath or credential.helper is CRITICAL.', []),
     step(['f-share'], 'ok', 'What is left',
-      iso ? `The share, if the agent wrote to it.${e.keep === 'on' ? ' --keep-records also kept the epitaph.' : ''}${e.loki !== 'unset' ? ' Its lookups and connections, at Loki.' : ''}`
+      iso ? `The share, if the agent wrote to it.${e.keep === 'on' ? ` --keep-records also kept the epitaph${e.conversation === 'on' ? ', and the conversation log went to Loki' : ''}.` : ''}${e.loki !== 'unset' ? ' Its lookups and connections, at Loki.' : ''}`
         : 'The project, ~/shared, writable mounts, the harness\'s per-project state, epitaphs, and the audit record.', [],
       { kept: ['f-project', 'f-share', 'f-rw', 'f-rwpp', 'f-stores'].filter(x => !(iso && x === 'f-project')) }),
   ]));
