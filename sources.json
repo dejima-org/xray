@@ -1,18 +1,14 @@
 {
   "dejima": {
     "repo": "dejima/dejima",
-    "release": null,
-    "version": "2026.11.24",
-    "ref": "development",
-    "commit": "100c58508e4f0035c67ede3b2d682563970727f7",
+    "release": "2026.11.24",
+    "commit": "0650a90ad4dc73eb4a8e4968ef54306b5980152f",
     "verified": "2026-11-24"
   },
   "darner": {
     "repo": "dejima/darner",
-    "release": null,
-    "version": "0.1.20",
-    "ref": "development",
-    "commit": "704f1d4c4a383b1e7694e10e1633da0822fdd4f5",
+    "release": "0.1.20",
+    "commit": "1004100c11330ecd6c53d7a719b81470e6e92c1c",
     "verified": "2026-11-24"
   },
   "dejima-ci-hardener": {
