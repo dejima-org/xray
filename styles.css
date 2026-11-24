@@ -337,7 +337,7 @@ h2, h3, h4 { font-weight: 500; margin: 0; }
 .n-refused.n-alert { border-color: var(--warn); background: color-mix(in srgb, var(--warn) 10%, var(--bg-well)); }
 .n-refused.n-alert strong { color: var(--warn); }
 .n-refused strong { display: block; font-family: var(--font-head); font-weight: 500; color: var(--refused); }
-.n-refused p { margin: .2rem 0 0; }
+.n-refused p { margin: .2rem 0 0; white-space: pre-wrap; }
 
 /* world layout */
 /* The internet row wraps to whatever width the LAN below needs, rather than setting it. */

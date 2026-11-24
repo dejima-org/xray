@@ -45,7 +45,7 @@ for (const on of sets) {
 const diff = c => {
   const out = [];
   for (const p of PROJECTS) if (c.on[p.id] !== D.on[p.id]) out.push(`${c.on[p.id] ? '+' : '-'}${p.id}`);
-  for (const k of KEYS) if (c.on[k.project] !== false && JSON.stringify(c[k.id]) !== JSON.stringify(D[k.id])) out.push(`${k.id}=${JSON.stringify(c[k.id])}`);
+  for (const k of KEYS) if (JSON.stringify(c[k.id]) !== JSON.stringify(D[k.id])) out.push(`${k.id}=${JSON.stringify(c[k.id])}`);
   return out;
 };
 

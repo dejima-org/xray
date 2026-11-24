@@ -33,7 +33,7 @@ export function scenarios(cfg, d) {
       : step(['s-harness', 'lan-nas'], 'warn', 'Go looking on the LAN', 'Your NAS, your router\'s admin page, anything your laptop can reach: the agent reaches it too, as you.', []);
     add('dejima', 'bare-api', 'Ask the model', e.selfHosted ? [
       step(['s-harness', ...(dv ? ['fw-devbox'] : ['lan-llm'])], dv ? 'refused' : 'warn', dv ? 'The node firewall drops it' : 'Straight to the model',
-        dv ? 'Rules 7-9 drop 10/8 on the node, sandbox or not. A LAN model needs its own pinhole.' : 'No credential to steal here, but nothing decides what else the agent reaches on the way.', ['harness']),
+        dv ? 'Rule 7 drops 10/8 on the node, sandbox or not. A LAN model needs its own pinhole.' : 'No credential to steal here, but nothing decides what else the agent reaches on the way.', ['harness']),
     ] : [
       step(['s-harness', 'f-cred'], 'warn', 'Read the real credential', 'It is a file in your home directory. The agent holds the real thing, not a placeholder.', ['harness']),
       step(['s-harness', ...nodeFw, 'lan-router', 'net-api'], 'warn', 'Straight to the API', 'And to anywhere else, with the same credential: nothing on the way can tell your key from a copy.', []),
@@ -41,7 +41,7 @@ export function scenarios(cfg, d) {
     add('dejima', 'bare-keys', 'Read your SSH keys and tokens', [
       step(['s-harness', 'f-ssh'], 'warn', 'Read ~/.ssh/id_ed25519', 'Anything the key opens, the agent opens: your servers, your forge, wherever you have put the public half.', []),
       step(['s-harness', 'f-tokens'], 'warn', 'Read ~/.config', 'Forge, cloud, and registry tokens, at whatever scope you gave them.', []),
-      step(['s-harness', ...nodeFw, 'lan-router', 'net-unlisted'], 'warn', 'Send them anywhere', 'There is no allowlist: every name resolves and every address is reachable. A request to example.net leaves like any other.', []),
+      step(['s-harness', ...nodeFw, 'lan-router', 'net-unlisted'], 'warn', 'Send them anywhere', `There is no allowlist: every name resolves and every ${dv ? 'public IPv4 ' : ''}address is reachable. A request to example.net leaves like any other.`, []),
     ]);
     add('dejima', 'bare-lan', 'Reach the rest of your network', [lan,
       dv && step(['s-harness', 'fw-devbox', 'lan-router', 'net-unlisted'], 'warn', 'The internet is still open', 'The devbox reaches public IPv4 by its outbound ACCEPT policy, sandbox or not.', [])]);
@@ -79,7 +79,7 @@ export function scenarios(cfg, d) {
       step(['p-launcher', 'c-filter'], fw ? 'ok' : 'warn', fw ? 'Start the filter and check it' : 'Start the filter, with nothing in it',
         fw ? selfCheck : '[core] firewall = off: firewall-up.sh exits before loading a rule, and resolv.conf is left alone.', ['firewall', 'drop', 'sealed']),
       step(['p-launcher', 'c-session'], 'ok', 'Start the session inside it',
-        'The session joins the filter\'s network namespace. Its entrypoint points resolv.conf at 127.0.0.1, installs the guards, drops every capability, and runs the harness.',
+        `The session joins the filter's network namespace. Its entrypoint ${fw ? 'points resolv.conf at 127.0.0.1, ' : ''}installs the guards, drops every capability, and runs the harness.`,
         ['harness']),
     ]),
   ]);
@@ -92,12 +92,12 @@ export function scenarios(cfg, d) {
   ] : [
     e.llmByName
       ? step(['s-harness', 's-dns', 'bridge', ...nodeFw, 'lan-resolver'], 'ok', 'Look up llm.example.lan',
-          'The name had to be approved before cline would launch. As the base_url host it is then permitted and internal-exempt, so its private answer is accepted, and the resolver keeps an upstream.', ['base_url', 'allowed', 'global'])
+          'The name had to be approved before cline would launch. As the base_url host it is then permitted on port 11434 only, though it is also an approved domain: the narrower grant wins. It is internal-exempt, so its private answer is accepted, and the resolver keeps an upstream.', ['base_url', 'allowed', 'global'])
       : step(['s-harness', 'g-nft'], 'ok', '10.0.0.10 is permitted by address',
-          'An IPv4 base_url goes straight into the literal set. No DNS, so no answer to check, and internal_domains does not apply.', ['base_url']),
+          'An IPv4 base_url goes into a set reachable on port 11434 only. No DNS, so no answer to check, and internal_domains does not apply.', ['base_url']),
     step(['s-harness', 'g-nft', 'bridge', ...(dv ? ['fw-devbox'] : ['lan-llm'])], dv ? 'refused' : 'ok', dv ? 'The node firewall drops it' : 'Straight to the model',
-      dv ? 'dejima allows it, but the devbox may only reach the forge and the resolver on the LAN. Rules 7-9 drop 10/8. A LAN model needs its own pinhole above the DROPs.'
-        : 'No credential exists, so there is no proxy and no placeholder. The request crosses nftables like any other permitted connection.', ['backend', 'cline_backend']),
+      dv ? 'dejima allows it, but the devbox may only reach the forge and the resolver on the LAN. Rule 7 drops 10/8. A LAN model needs its own pinhole above the DROPs.'
+        : 'No credential exists, so there is no proxy: cline is handed the stand-in key dejima-no-credential-needed. The request crosses nftables like any other permitted connection.', ['backend', 'cline_backend']),
   ]) : e.proxy === 'off' ? [
     step(['s-harness', 'm-cred'], 'warn', 'Read the real credential', 'With [credentials] proxy = off, the credential file is mounted into the container. The agent can read it, and send it anywhere it can reach.', ['proxy']),
     fw && step(['s-harness', 's-dns'], 'ok', `Look up ${e.apiHost}`, 'The API name joins the open list when the proxy is off.', ['proxy']),
@@ -162,8 +162,23 @@ export function scenarios(cfg, d) {
     step(['s-harness', 's-dns', 'bridge', ...nodeFw, 'lan-resolver'], 'ok', 'Look up wiki.example.lan',
       `Permitted by ${approvedBy('wiki.example.lan')}, and exempt in [core] internal_domains, so its answer, 10.0.0.30, is accepted and goes into internal_ok_v4. Without the exemption the launch itself would have been refused.`, ['internal']),
     step(['s-harness', 'g-nft', 'bridge', ...(dv ? ['fw-devbox'] : ['lan-wiki'])], dv ? 'refused' : 'ok', dv ? 'dejima allows it; the node does not' : 'Connect',
-      dv ? 'Rules 7-9 drop 10/8 on the Proxmox node, outside the guest. Only the forge and the resolver (and ntfy, with 6b) are pinholed. The drop is logged.' : 'Accepted.', ['internal']),
+      dv ? 'Rule 7 drops 10/8 on the Proxmox node, outside the guest. Only the forge and the resolver (and ntfy with 6b, Loki with 6c) are pinholed. The drop is logged.' : 'Accepted.', ['internal']),
   ]));
+
+  // Loki: written to the host, shipped from there, and out of the session's reach.
+  if (e.loki !== 'unset' && fw) {
+    const lokiDropped = dv && cfg.dv_6c === 'off';
+    add('dejima', 'loki-ship', 'Ship the records to Loki', guard([
+      step(['s-logs', 'p-shipper'], 'ok', 'Records land on the host', 'The filter writes every lookup and connection into a per-run directory bind-mounted from the host. Nothing in a container pushes.', ['loki']),
+      step(['p-shipper', ...nodeFw, ...(lokiDropped ? [] : ['lan-loki'])], lokiDropped ? 'refused' : 'ok', 'Push to Loki',
+        dv ? (lokiDropped ? 'dejima-log-ship runs on the VM, so its push is LAN traffic: rules 7-9 drop it. Every stream it ships goes quiet together, which looks like a devbox nobody used.' : 'Rule 6c opens the Loki port to that one host, above the DROPs.')
+          : `From the host, by the one dejima-log-ship unit${e.conversation === 'on' ? ', with the transcripts too' : ''}.`, ['loki', 'conversation', 'dv_6c']),
+    ]));
+    add('dejima', 'loki-read', 'Read the logs at Loki', guard([
+      step(['s-harness', 's-dns'], 'refused', 'Look up loki.example.lan', 'Not permitted: no launch permits the Loki host, and no container is told its address. Loki answers reads as well as writes, so a session that could push there could read what it holds, other projects\' records included.', ['loki']),
+      step(['s-harness', 'g-nft'], 'refused', 'Try its address directly', '10.0.0.60 is in no set, so nftables answers with a TCP reset. The launcher offers Loki no exception to the host clamp either, so a Loki on the host itself is closed too.', ['loki']),
+    ]));
+  }
 
   // Files
   add('dejima', 'files', 'Read and write files', guard([
@@ -190,10 +205,7 @@ export function scenarios(cfg, d) {
     step(['s-harness', 's-guards'], 'refused', 'git push', `[core] workflow = local-only${e.overrides.workflow ? ` (${e.overrides.workflow})` : ''}: DEJIMA_PUSH_HOSTS is empty, so every push is refused.${cline ? ' Under cline this is only the git wrapper on PATH: /usr/bin/git steps around it and no hook catches that, so what really stops it is no SSH route and no credential GitHub will accept a write from.' : ''}`, ['workflow', 'ghpush']),
     mergeStep,
   ] : [
-    e.blocked.length
-      ? step(['s-harness', 's-guards'], 'refused', 'git push origin main', `Refused: main and master are blocked branches.${cline ? ' Under cline this is only the git wrapper on PATH: /usr/bin/git steps around it and no hook catches that, so only the forge\'s own branch protection would refuse main.' : ''}`, ['workflow'])
-      : step(['s-harness', 's-guards', 'g-nft', ...out('net-github')], 'warn', 'git push origin main',
-        `The guard allows it: local-only blocks no branches because it never pushes, and --allow-github-push gives it a push host anyway. ${e.ssh_key !== 'unset' ? 'With a session key loaded, only GitHub\'s own branch protection stands in the way.' : 'Here GitHub refuses the login, since local-only forwards no agent and no ssh_key is set; with a session key, only its branch protection would stand in the way.'}`, ['workflow', 'ghpush', 'ssh_key']),
+    step(['s-harness', 's-guards'], 'refused', 'git push origin main', `Refused: main and master are blocked branches${e.pushes ? '' : ', supplied because --allow-github-push gives a push host and local-only names no branches'}.${cline ? ` Under cline this is only the git wrapper on PATH: /usr/bin/git steps around it and no hook catches that, so ${e.ssh_key === 'unset' && !e.agent ? 'what really stops it is that no agent is forwarded and no ssh_key is set: GitHub refuses the login.' : 'only the forge\'s own branch protection would refuse main.'}` : ''}`, ['workflow', 'ghpush', 'ssh_key']),
     step(['s-harness', 's-guards'], 'ok', 'git push origin agent/fix-tests', `To ${e.pushHosts.join(' or ')}, a push host. Allowed.`, ['workflow', 'forge', 'ghpush']),
     toForge,
     mergeStep,
@@ -220,7 +232,7 @@ export function scenarios(cfg, d) {
   const iso = e.isolated === 'on';
   add('dejima', 'close', 'Close the session', guard([
     step(['c-session'], 'info', 'The session container is removed', 'compose run --rm: its filesystem is gone.', [], { gone: ['c-session'] }),
-    e.proxied && step(['p-proxy'], 'info', 'The proxy stops', 'Its log is summarised on your terminal, when there is anything in it: errors, auth failures, and what to do about them.', [], { gone: ['p-proxy', 'p-shipper'] }),
+    e.proxied && step(['p-proxy'], 'info', 'The proxy stops', 'Its log is summarised on your terminal, when there is anything in it: errors, auth failures, and what to do about them.', [], { gone: ['p-proxy'] }),
     step(['p-launcher'], 'info', 'The per-run copies are deleted', 'Host-side temp files that were bind-mounted in: the staged ~/.claude.json, the gitconfig copy, the settings overlay, any fake credential, the proxy\'s socket directory.', []),
     step(['c-filter'], 'info', 'The filter and the network go', 'docker rm -f the filter, docker network rm dejima-run-…. Live dejima-allow --container grants die with them.', [], { gone: ['docker'] }),
     iso && step(['f-project'], 'info', 'The session\'s volumes are removed', 'The work volume and its history and editor volumes: an isolated session keeps nothing it was not told to.', [], { gone: ['f-project'] }),
@@ -231,8 +243,8 @@ export function scenarios(cfg, d) {
       : step(['p-launcher', 'f-stores'], 'ok', 'The epitaph is saved', 'If the session compacted, its summaries are copied host-side, to the epitaph store.', ['epitaph'])),
     !iso && step(['p-launcher', 'f-project'], 'info', 'The exit-time audit runs', 'It diffs .git/config, hooks, .mcp.json, .envrc, and friends against the launch snapshot. A new core.hooksPath or credential.helper is CRITICAL.', []),
     step(['f-share'], 'ok', 'What is left',
-      iso ? `The share, if the agent wrote to it.${e.keep === 'on' ? ' --keep-records also kept the epitaph.' : ''}${e.loki !== 'unset' ? ' Its lookups and connections, at Loki.' : ''}`
-        : 'The project, ~/shared, writable mounts, the harness\'s per-project state, epitaphs, and the audit record.', [],
+      iso ? `The share, if the agent wrote to it.${e.keep === 'on' && (e.conversation === 'on' || (e.epitaph === 'on' && !cline)) ? ` --keep-records also kept ${[e.epitaph === 'on' && !cline && 'the epitaph', e.conversation === 'on' && 'the conversation log, for Loki'].filter(Boolean).join(', and ')}.` : ''}${e.loki !== 'unset' ? ' Its lookups and connections, at Loki.' : ''}${e.proxied ? ' Its token-usage record, for at least 30 days.' : ''}`
+        : `The project, ~/shared, writable mounts, the harness's per-project state and its editor and shell-history volumes, ${e.epitaph === 'on' ? 'epitaphs, ' : ''}and the audit's findings, if it found any.${e.loki !== 'unset' ? ' Its lookups and connections, at Loki.' : ''}${e.proxied ? ' The token-usage record, for at least 30 days.' : ''}`, [],
       { kept: ['f-project', 'f-share', 'f-rw', 'f-rwpp', 'f-stores'].filter(x => !(iso && x === 'f-project')) }),
   ]));
 
@@ -366,7 +378,7 @@ export function scenarios(cfg, d) {
     ]);
     add('guard', 'gd-reach', 'A scan: reach fails', [
       ...collect,
-      step(['gd-cycle', 'gd-baseline'], 'refused', 'Nothing changed, but reach did not pass', 'FAIL or INDETERMINATE: something answered, or no control worked. Inside a window too: containment is never held. Had anything changed as well, it would be one max alert, "changes and containment".', ['gd_expect']),
+      step(['gd-cycle', 'gd-baseline'], 'refused', 'Nothing changed, but reach did not pass', 'FAIL or INDETERMINATE: something answered, or no control worked. Inside a window too: containment is never held. Had anything changed as well, it would be one max alert: "changes and containment", or "watched path changed" if a critical path moved.', ['gd_expect']),
       alert('containment', 'high'),
       after('until reach passes again: a containment failure is not a baseline change, so accept does not clear it'),
     ]);
@@ -377,13 +389,15 @@ export function scenarios(cfg, d) {
       !win && hb && step(['gd-cycle', 'lan-kuma'], 'info', 'And no heartbeat', 'The alerting cycle sends none, so Kuma fires too, about 1200 s after the last ping.', ['gd_hb']),
     ]);
     add('guard', 'gd-pull', 'The devbox tries to reach the guard', [
-      step(['dejima-host', 'fw-devbox'], 'refused', 'Dropped at the node', 'The guard is a LAN address, so rules 7-9 drop it (logged), and nothing on the guard listens anyway. The guard pulls; adding an outbound pinhole "for symmetry" would give that away.', []),
+      step(['dejima-host', 'fw-devbox'], 'refused', 'Dropped at the node', 'The guard is a LAN address, so rules 7-9 drop it (logged), and dejima-guard opens no port anyway. The guard pulls; adding an outbound pinhole "for symmetry" would give that away.', []),
     ]);
   }
 
   // ---- darner -----------------------------------------------------------
   if (on.darner && cfg.dn_front.length) {
     const h = cfg.dn_harness === 'default' ? e.harness : cfg.dn_harness;
+    // dejima's proxy meters a hosted backend; a self-served one is not metered.
+    const metered = cfg.proxy === 'on' && !(h === 'cline' && cfg.cline_backend === 'self-hosted');
     const dnRefused = refusals(effective(normalise({ ...cfg, on: { ...cfg.on }, isolated: 'on', harness: h,
       drop: cfg.dn_net === 'default' ? 'off' : 'on', sealed: cfg.dn_net === 'sealed' ? 'on' : 'off' })));
     const refusedHere = dnRefused.length > 0;
@@ -391,7 +405,7 @@ export function scenarios(cfg, d) {
     const link = cfg.dn_ra !== 'unset';
     const netFlag = { default: '', named: ' --drop-domains', sealed: ' --require-sealed' }[cfg.dn_net];
     const hop = ['p-dn-api', ...nodeFw, 'p-dn-launch'];
-    const reach = cfg.dn_net === 'default' ? 'global approvals plus whatever the task names, but no project approvals'
+    const reach = cfg.dn_net === 'default' ? 'dejima\'s built-in list, global approvals, and whatever the task names, but no project approvals'
       : cfg.dn_net === 'named' ? 'only the model API and the task\'s own domains, since --drop-domains drops global approvals too'
         : 'no name at all: a sealed launch only starts when nothing resolves, so a task naming any domain is refused';
     // A refusal from the filter comes after dejima has registered the session;
@@ -426,7 +440,7 @@ export function scenarios(cfg, d) {
       step([...hop, 'dn-share'], 'ok', 'Picked up by the next poll', 'A help event goes to the frontend that started the task.', []),
       cfg.dn_answers === 'on'
         ? step([...hop, 'dn-harness'], 'ok', 'Your answer is typed in', `--answers: pasted bracketed, control characters stripped, then Enter${h === 'cline' ? '; at cline\'s question prompt it is typed as keys, on one line' : ''}.`, ['dn_answers'])
-        : step(['p-dn-api'], 'info', 'No answering from chat', `${matrix ? `Matrix says "Attach to darner:dn-k3x7q to respond"${link ? ', or links the session' : ''}. A plain reply is ignored; one that mentions the bot gets "Failed: answering from chat is not enabled on this host" and ❌. ` : ''}${webUi ? 'darner-web still shows an answer box, and sending is refused: answering from chat is not enabled on this host.' : ''}`, ['dn_answers', 'dn_ra']),
+        : step(['p-dn-api'], 'info', 'No answering from chat', `${matrix ? `Matrix says ${metered ? '"Used <n> in (<n> cached), <n> out since the last notice.", then ' : ''}${link ? '"Open the session to respond", with the link.' : '"Attach to darner:dn-k3x7q to respond."'} A plain reply is ignored; one that mentions the bot gets "Failed: answering from chat is not enabled on this host" and ❌. ` : ''}${webUi ? 'darner-web still shows an answer box, and sending is refused: answering from chat is not enabled on this host.' : ''}`, ['dn_answers', 'dn_ra']),
     ]);
   }
 
