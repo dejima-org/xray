@@ -219,12 +219,12 @@ export function effective(c) {
     openrouter: 'openrouter.ai', 'self-hosted': e.base_url.includes('llm.') ? 'llm.example.lan' : '10.0.0.10' }[e.backend];
   e.llmByName = e.selfHosted && e.base_url.includes('llm.');
   e.pushes = e.workflow !== 'local-only';
-  // From the workflow, not from whether anything may be pushed to: local-only
-  // blocks none, and --allow-github-push can still give it a push host.
-  e.blocked = e.pushes ? ['main', 'master'] : [];
   // Where a push may go, and what signs it.
   e.pushHosts = [...(e.pushes && e.forge === 'gitea' ? ['git.example.lan'] : []),
     ...((e.pushes && e.forge === 'github') || e.ghpush === 'on' ? ['github.com'] : [])];
+  // Any push destination gets main and master blocked, whether the workflow
+  // names them or, like local-only under --allow-github-push, names none.
+  e.blocked = e.pushHosts.length ? ['main', 'master'] : [];
   e.agent = e.pushes && e.ssh_key === 'unset';
   return e;
 }

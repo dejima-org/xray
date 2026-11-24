@@ -131,10 +131,10 @@ test('the forwarded names match the policy', () => {
   assert.equal(n({ ...{ harness: 'cline', cline_model: 'set', cline_backend: 'anthropic' }, drop: 'on' }).length, 0);
 });
 
-test('blocked branches come from the workflow, not from having a push host', () => {
+test('any push host gets main and master blocked, local-only included', () => {
   const steps = o => { const c = normalise(Object.assign(defaults(), o)); const d = derive(c); return scenarios(c, d).find(s => s.id === 'push').steps; };
   const main = o => steps(o).find(st => st.title === 'git push origin main');
-  assert.equal(main({ ghpush: 'on' }).verdict, 'warn', 'local-only blocks no branch, so --allow-github-push lets main through');
+  assert.equal(main({ ghpush: 'on' }).verdict, 'refused', '--allow-github-push under local-only still blocks main (#486)');
   assert.equal(main({ workflow: 'branch-push', forge: 'gitea' }).verdict, 'refused');
   assert.ok(steps({ forge: 'gitea' }).some(st => /merge/.test(st.title)), 'local-only still blocks merges');
 });

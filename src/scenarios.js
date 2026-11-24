@@ -205,10 +205,7 @@ export function scenarios(cfg, d) {
     step(['s-harness', 's-guards'], 'refused', 'git push', `[core] workflow = local-only${e.overrides.workflow ? ` (${e.overrides.workflow})` : ''}: DEJIMA_PUSH_HOSTS is empty, so every push is refused.${cline ? ' Under cline this is only the git wrapper on PATH: /usr/bin/git steps around it and no hook catches that, so what really stops it is no SSH route and no credential GitHub will accept a write from.' : ''}`, ['workflow', 'ghpush']),
     mergeStep,
   ] : [
-    e.blocked.length
-      ? step(['s-harness', 's-guards'], 'refused', 'git push origin main', `Refused: main and master are blocked branches.${cline ? ' Under cline this is only the git wrapper on PATH: /usr/bin/git steps around it and no hook catches that, so only the forge\'s own branch protection would refuse main.' : ''}`, ['workflow'])
-      : step(['s-harness', 's-guards', 'g-nft', ...out('net-github')], 'warn', 'git push origin main',
-        `The guard allows it: local-only blocks no branches because it never pushes, and --allow-github-push gives it a push host anyway. ${e.ssh_key !== 'unset' ? 'With a session key loaded, only GitHub\'s own branch protection stands in the way.' : 'Here GitHub refuses the login, since local-only forwards no agent and no ssh_key is set; with a session key, only its branch protection would stand in the way.'}`, ['workflow', 'ghpush', 'ssh_key']),
+    step(['s-harness', 's-guards'], 'refused', 'git push origin main', `Refused: main and master are blocked branches${e.pushes ? '' : ', supplied because --allow-github-push gives a push host and local-only names no branches'}.${cline ? ' Under cline this is only the git wrapper on PATH: /usr/bin/git steps around it and no hook catches that, so only the forge\'s own branch protection would refuse main.' : ''}`, ['workflow', 'ghpush']),
     step(['s-harness', 's-guards'], 'ok', 'git push origin agent/fix-tests', `To ${e.pushHosts.join(' or ')}, a push host. Allowed.`, ['workflow', 'forge', 'ghpush']),
     toForge,
     mergeStep,
