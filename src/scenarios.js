@@ -41,7 +41,7 @@ export function scenarios(cfg, d) {
     add('dejima', 'bare-keys', 'Read your SSH keys and tokens', [
       step(['s-harness', 'f-ssh'], 'warn', 'Read ~/.ssh/id_ed25519', 'Anything the key opens, the agent opens: your servers, your forge, wherever you have put the public half.', []),
       step(['s-harness', 'f-tokens'], 'warn', 'Read ~/.config', 'Forge, cloud, and registry tokens, at whatever scope you gave them.', []),
-      step(['s-harness', ...nodeFw, 'lan-router', 'net-unlisted'], 'warn', 'Send them anywhere', `There is no allowlist: every name resolves and every ${dv ? 'public ' : ''}address is reachable. A request to example.net leaves like any other.`, []),
+      step(['s-harness', ...nodeFw, 'lan-router', 'net-unlisted'], 'warn', 'Send them anywhere', `There is no allowlist: every name resolves and every ${dv ? 'public IPv4 ' : ''}address is reachable. A request to example.net leaves like any other.`, []),
     ]);
     add('dejima', 'bare-lan', 'Reach the rest of your network', [lan,
       dv && step(['s-harness', 'fw-devbox', 'lan-router', 'net-unlisted'], 'warn', 'The internet is still open', 'The devbox reaches public IPv4 by its outbound ACCEPT policy, sandbox or not.', [])]);
@@ -243,8 +243,8 @@ export function scenarios(cfg, d) {
       : step(['p-launcher', 'f-stores'], 'ok', 'The epitaph is saved', 'If the session compacted, its summaries are copied host-side, to the epitaph store.', ['epitaph'])),
     !iso && step(['p-launcher', 'f-project'], 'info', 'The exit-time audit runs', 'It diffs .git/config, hooks, .mcp.json, .envrc, and friends against the launch snapshot. A new core.hooksPath or credential.helper is CRITICAL.', []),
     step(['f-share'], 'ok', 'What is left',
-      iso ? `The share, if the agent wrote to it.${e.keep === 'on' ? ` --keep-records also kept the epitaph${e.conversation === 'on' ? ', and the conversation log went to Loki' : ''}.` : ''}${e.loki !== 'unset' ? ' Its lookups and connections, at Loki.' : ''}${e.proxied ? ' Its token-usage record, for 30 days.' : ''}`
-        : `The project, ~/shared, writable mounts, the harness's per-project state and its editor and shell-history volumes, epitaphs, and the audit's findings, if it found any.${e.proxied ? ' The token-usage record, for 30 days.' : ''}`, [],
+      iso ? `The share, if the agent wrote to it.${e.keep === 'on' ? ` --keep-records also kept the epitaph${e.conversation === 'on' ? ', and the conversation log went to Loki' : ''}.` : ''}${e.loki !== 'unset' ? ' Its lookups and connections, at Loki.' : ''}${e.proxied ? ' Its token-usage record, for at least 30 days.' : ''}`
+        : `The project, ~/shared, writable mounts, the harness's per-project state and its editor and shell-history volumes, ${e.epitaph === 'on' ? 'epitaphs, ' : ''}and the audit's findings, if it found any.${e.proxied ? ' The token-usage record, for at least 30 days.' : ''}`, [],
       { kept: ['f-project', 'f-share', 'f-rw', 'f-rwpp', 'f-stores'].filter(x => !(iso && x === 'f-project')) }),
   ]));
 
@@ -396,6 +396,8 @@ export function scenarios(cfg, d) {
   // ---- darner -----------------------------------------------------------
   if (on.darner && cfg.dn_front.length) {
     const h = cfg.dn_harness === 'default' ? e.harness : cfg.dn_harness;
+    // dejima's proxy meters a hosted backend; a self-served one is not metered.
+    const metered = cfg.proxy === 'on' && !(h === 'cline' && cfg.cline_backend === 'self-hosted');
     const dnRefused = refusals(effective(normalise({ ...cfg, on: { ...cfg.on }, isolated: 'on', harness: h,
       drop: cfg.dn_net === 'default' ? 'off' : 'on', sealed: cfg.dn_net === 'sealed' ? 'on' : 'off' })));
     const refusedHere = dnRefused.length > 0;
@@ -438,7 +440,7 @@ export function scenarios(cfg, d) {
       step([...hop, 'dn-share'], 'ok', 'Picked up by the next poll', 'A help event goes to the frontend that started the task.', []),
       cfg.dn_answers === 'on'
         ? step([...hop, 'dn-harness'], 'ok', 'Your answer is typed in', `--answers: pasted bracketed, control characters stripped, then Enter${h === 'cline' ? '; at cline\'s question prompt it is typed as keys, on one line' : ''}.`, ['dn_answers'])
-        : step(['p-dn-api'], 'info', 'No answering from chat', `${matrix ? `Matrix says ${link ? '"Open the session to respond", with the link.' : '"Attach to darner:dn-k3x7q to respond."'} A plain reply is ignored; one that mentions the bot gets "Failed: answering from chat is not enabled on this host" and ❌. ` : ''}${webUi ? 'darner-web still shows an answer box, and sending is refused: answering from chat is not enabled on this host.' : ''}`, ['dn_answers', 'dn_ra']),
+        : step(['p-dn-api'], 'info', 'No answering from chat', `${matrix ? `Matrix says ${metered ? '"Used <n> in, <n> out since the last notice.", then ' : ''}${link ? '"Open the session to respond", with the link.' : '"Attach to darner:dn-k3x7q to respond."'} A plain reply is ignored; one that mentions the bot gets "Failed: answering from chat is not enabled on this host" and ❌. ` : ''}${webUi ? 'darner-web still shows an answer box, and sending is refused: answering from chat is not enabled on this host.' : ''}`, ['dn_answers', 'dn_ra']),
     ]);
   }
 

@@ -268,6 +268,10 @@ function llmApproved(e) { return e.global.includes('llm.example.lan') || (e.isol
 
 // What the launcher prints ahead of the filter's own log when the policy
 // refuses. Paragraph breaks are dejima's own.
+// The filter's log is shown as printed, indented; lines whose counts vary by
+// run are elided. The ERROR lines are the two scripts' error traps.
+const TRAP_ENTRYPOINT = '    ERROR: filter-entrypoint.sh aborted at line 20 (exit 1): /usr/local/bin/firewall-up.sh';
+const TRAP_APPLY = '    ERROR: firewall-up.sh aborted at line 180 (exit 1): /usr/local/sbin/egress-policy apply';
 const FILTER_STOPPED = 'The egress control for this session stopped before it was ready, so there is no filter for the sandbox to run behind. Refusing to start it.\n\nIt did not run out of time - it is no longer running. Usually that is the policy refusing, and the reason is the last line before the ERROR below; it can also be the container dying for a reason of its own, in which case the output stops without one.\n\nWhat the filter container said:\n';
 
 // The first thing dejima would refuse, in the order it checks. Each is an
@@ -295,12 +299,12 @@ export function refusal(e) {
   }
   const p = permitted(e).map(x => x.name);
   if (e.firewall === 'on' && e.internal !== 'unset' && !p.includes(e.internal) && e.drop !== 'on')
-    return `${FILTER_STOPPED}    ERROR: the internal-destination exemption names destinations nothing permits: ${e.internal} [core] internal_domains and --internal-domain both exempt a name from the check that refuses an answer pointing inside a private network. Neither makes the name reachable - approve it as well: dejima-allow --global ${e.internal}        # or --project An isolated launch resolves no project, so --project does nothing there; --global still counts. Unless this launch dropped the global list with --drop-domains or --require-sealed, where the file given to --domains is the only way in.`;
+    return `${FILTER_STOPPED}    ERROR: the internal-destination exemption names destinations nothing permits: ${e.internal}\n    \n    [core] internal_domains and --internal-domain both exempt a name from the check that refuses an answer pointing inside a private network. Neither makes the name reachable - approve it as well:\n    \n      dejima-allow --global ${e.internal}        # or --project\n    \n    An isolated launch resolves no project, so --project does nothing there; --global still counts. Unless this launch dropped the global list with --drop-domains or --require-sealed, where the file given to --domains is the only way in.\n${TRAP_ENTRYPOINT}`;
   if (e.firewall === 'on') {
     const x = exempt(e);
     const bad = p.filter(n => PRIVATE.includes(n) && !x.has(n));
     if (bad.length)
-      return `${FILTER_STOPPED}    [egress-policy] FAILED: check 7: these permitted names are answered with an address inside a private network, and this policy refuses such answers: ${bad.map(n => `${n} (open/strict)`).join(' ')}. That is this configuration disagreeing with itself - list them in [core] internal_domains (or --internal-domain, for one launch) if pointing inside is intended, or remove them.`;
+      return `${FILTER_STOPPED}    …\n    [egress-policy] FAILED: check 7: these permitted names are answered with an address inside a private network, and this policy refuses such answers: ${bad.map(n => `${n} (open/strict)`).join(' ')}. That is this configuration disagreeing with itself - list them in [core] internal_domains (or --internal-domain, for one launch) if pointing inside is intended, or remove them.\n${TRAP_APPLY}\n${TRAP_ENTRYPOINT}`;
   }
   if (e.sealed === 'on' && p.length) return `--require-sealed: this session did not seal. Refusing to start it. A name is permitted, so the resolver has an upstream and the session can look names up: ${permitted(e).map(x => `${x.name}  (${x.cls === 'github' ? 'forge' : x.cls} class)`).join(' ')}. Each was named by this launch - the project's approved domains, --domains, the harness's model API. A model reached by an address needs no name.`;
   return null;
